@@ -2,8 +2,10 @@ package com.savarez.waketag.alarm
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.os.Build
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.receiver.AlarmReceiver
@@ -16,7 +18,12 @@ class WakeTagAlarmManager(
     private val alarmManager =
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun scheduleAlarm(alarm: Alarm): Long {
+    fun scheduleAlarm(alarm: Alarm): Boolean {
+        if (!isValidTime(alarm.hour, alarm.minute)) {
+            Log.e(TAG, "Invalid alarm time, skipping schedule: ${alarm.hour}:${alarm.minute}")
+            return false
+        }
+
         val triggerTime = calculateNextTriggerTime(alarm.hour, alarm.minute)
         val pendingIntent = createSchedulePendingIntent(
             alarmId = alarm.id,
@@ -25,13 +32,33 @@ class WakeTagAlarmManager(
             dismissType = alarm.dismissType
         )
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            triggerTime,
-            pendingIntent
-        )
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                Log.w(
+                    TAG,
+                    "Exact alarm permission unavailable; scheduling inexact alarm for id=${alarm.id}"
+                )
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+            }
+            true
+        }.getOrElse { throwable ->
+            Log.e(TAG, "Failed to schedule alarm id=${alarm.id}", throwable)
+            false
+        }
+    }
 
-        return triggerTime
+    fun isValidTime(hour: Int, minute: Int): Boolean {
+        return hour in 0..23 && minute in 0..59
     }
 
     fun cancelAlarm(alarmId: Long) {
@@ -106,6 +133,7 @@ class WakeTagAlarmManager(
     }
 
     companion object {
+        private const val TAG = "WakeTagAlarmManager"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_ALARM_HOUR = "extra_alarm_hour"
         const val EXTRA_ALARM_MINUTE = "extra_alarm_minute"

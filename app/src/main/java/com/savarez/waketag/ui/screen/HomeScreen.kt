@@ -1,18 +1,22 @@
 package com.savarez.waketag.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.data.model.Alarm
@@ -28,47 +32,74 @@ fun HomeScreen(
     onDeleteAlarmClick: (alarmId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateAlarmClick) {
-                Text(text = "+")
+    val fabContent: @Composable () -> Unit = {
+        BoxWithConstraints {
+            if (maxWidth >= 600.dp) {
+                LargeFloatingActionButton(onClick = onCreateAlarmClick) {
+                    Text(text = "New Alarm")
+                }
+            } else {
+                FloatingActionButton(onClick = onCreateAlarmClick) {
+                    Text(text = "+")
+                }
             }
         }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = fabContent
     ) { innerPadding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "WakeTag",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            val horizontalPadding = when {
+                maxWidth < 360.dp -> 12.dp
+                maxWidth < 600.dp -> 16.dp
+                maxWidth < 840.dp -> 24.dp
+                else -> 32.dp
+            }
+            val verticalPadding: Dp = if (maxHeight < 700.dp) 16.dp else 24.dp
+            val maxContentWidth: Dp = if (maxWidth >= 840.dp) 760.dp else 640.dp
 
-            if (alarms.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+                    .widthIn(max = maxContentWidth),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 Text(
-                    text = "No alarms yet. Tap + to create your first alarm.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "WakeTag",
+                    style = MaterialTheme.typography.headlineMedium
                 )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(items = alarms, key = { it.id }) { alarm ->
-                        AlarmCard(
-                            alarm = alarm,
-                            onEnabledChange = { enabled ->
-                                onAlarmEnabledChange(alarm.id, enabled)
-                            },
-                            onDeleteClick = {
-                                onDeleteAlarmClick(alarm.id)
-                            }
-                        )
+
+                if (alarms.isEmpty()) {
+                    Text(
+                        text = "No alarms yet. Tap + to create your first alarm.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = true),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(items = alarms, key = { it.id }) { alarm ->
+                            AlarmCard(
+                                alarm = alarm,
+                                onEnabledChange = { enabled ->
+                                    onAlarmEnabledChange(alarm.id, enabled)
+                                },
+                                onDeleteClick = {
+                                    onDeleteAlarmClick(alarm.id)
+                                }
+                            )
+                        }
                     }
                 }
             }

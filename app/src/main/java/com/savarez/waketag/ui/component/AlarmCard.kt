@@ -1,10 +1,12 @@
 package com.savarez.waketag.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -29,47 +31,95 @@ fun AlarmCard(
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(modifier = modifier.fillMaxWidth()) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "%02d:%02d".format(alarm.hour, alarm.minute),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = alarm.dismissType.displayLabel,
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = alarm.dismissType.futureCapabilityHint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            val compact = maxWidth < 360.dp
+            if (compact) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    AlarmInfoContent(alarm = alarm)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (alarm.enabled) "Enabled" else "Disabled",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(
+                                checked = alarm.enabled,
+                                onCheckedChange = onEnabledChange
+                            )
+                            TextButton(onClick = onDeleteClick) {
+                                Text("Delete")
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AlarmInfoContent(
+                        alarm = alarm,
+                        modifier = Modifier.weight(1f)
+                    )
 
-            Column(horizontalAlignment = Alignment.End) {
-                Switch(
-                    checked = alarm.enabled,
-                    onCheckedChange = onEnabledChange
-                )
-                Text(
-                    text = if (alarm.enabled) "Enabled" else "Disabled",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(onClick = onDeleteClick) {
-                    Text("Delete")
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.widthIn(min = 96.dp)
+                    ) {
+                        Switch(
+                            checked = alarm.enabled,
+                            onCheckedChange = onEnabledChange
+                        )
+                        Text(
+                            text = if (alarm.enabled) "Enabled" else "Disabled",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(onClick = onDeleteClick) {
+                            Text("Delete")
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AlarmInfoContent(
+    alarm: Alarm,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = "%02d:%02d".format(alarm.hour, alarm.minute),
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Text(
+            text = alarm.dismissType.displayLabel,
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = alarm.dismissType.futureCapabilityHint,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

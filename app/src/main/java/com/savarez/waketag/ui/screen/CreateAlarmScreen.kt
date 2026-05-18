@@ -3,12 +3,17 @@ package com.savarez.waketag.ui.screen
 import android.util.Log
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -22,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.component.AlarmTimePicker
@@ -44,6 +50,7 @@ fun CreateAlarmScreen(
     var selectedHour by rememberSaveable { mutableIntStateOf(7) }
     var selectedMinute by rememberSaveable { mutableIntStateOf(0) }
     var selectedDismissType by rememberSaveable { mutableStateOf(DismissType.NORMAL) }
+    var saveError by rememberSaveable { mutableStateOf<String?>(null) }
 
     CreateAlarmContent(
         hour = selectedHour,
@@ -53,7 +60,23 @@ fun CreateAlarmScreen(
         onMinuteChange = { selectedMinute = it },
         onDismissTypeChange = { selectedDismissType = it },
         onBackClick = onBackClick,
-        onSaveClick = { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType) },
+        onSaveClick = {
+            saveError = null
+            if (selectedHour !in 0..23 || selectedMinute !in 0..59) {
+                saveError = "Please select a valid alarm time."
+                Log.e(
+                    CREATE_ALARM_LOG_TAG,
+                    "Invalid alarm time selected: %02d:%02d".format(selectedHour, selectedMinute)
+                )
+            } else {
+                runCatching { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType) }
+                    .onFailure { throwable ->
+                        saveError = "Failed to save alarm. Please try again."
+                        Log.e(CREATE_ALARM_LOG_TAG, "Alarm save failed", throwable)
+                    }
+            }
+        },
+        errorMessage = saveError,
         modifier = modifier
     )
 }
@@ -68,64 +91,113 @@ fun CreateAlarmContent(
     onDismissTypeChange: (DismissType) -> Unit,
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(modifier = modifier.fillMaxSize()) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Text(
-                text = "Create Alarm",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            val horizontalPadding = when {
+                maxWidth < 360.dp -> 12.dp
+                maxWidth < 600.dp -> 20.dp
+                maxWidth < 840.dp -> 24.dp
+                else -> 32.dp
+            }
+            val verticalPadding: Dp = if (maxHeight < 700.dp) 16.dp else 24.dp
+            val contentSpacing: Dp = if (maxWidth < 360.dp) 16.dp else 20.dp
+            val maxContentWidth: Dp = if (maxWidth >= 840.dp) 640.dp else 560.dp
+            val compactActions = maxWidth < 420.dp
 
-            AlarmTimePicker(
-                hour = hour,
-                minute = minute,
-                onHourChange = onHourChange,
-                onMinuteChange = onMinuteChange
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+                    .widthIn(max = maxContentWidth),
+                verticalArrangement = Arrangement.spacedBy(contentSpacing)
+            ) {
                 Text(
-                    text = "Dismiss Method",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Create Alarm",
+                    style = MaterialTheme.typography.headlineMedium
                 )
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                ) {
-                    DismissType.entries.forEach { type ->
-                        DismissTypeChip(
-                            dismissType = type,
-                            selected = dismissType == type,
-                            onClick = { onDismissTypeChange(type) }
-                        )
+                AlarmTimePicker(
+                    hour = hour,
+                    minute = minute,
+                    onHourChange = onHourChange,
+                    onMinuteChange = onMinuteChange
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Dismiss Method",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        DismissType.entries.forEach { type ->
+                            DismissTypeChip(
+                                dismissType = type,
+                                selected = dismissType == type,
+                                onClick = { onDismissTypeChange(type) }
+                            )
+                        }
                     }
                 }
-            }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = "Cancel")
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
-                Button(
-                    onClick = onSaveClick,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = "Save")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (compactActions) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "Cancel")
+                        }
+                        Button(
+                            onClick = onSaveClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = "Save")
+                        }
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "Cancel")
+                        }
+                        Button(
+                            onClick = onSaveClick,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = "Save")
+                        }
+                    }
                 }
             }
         }

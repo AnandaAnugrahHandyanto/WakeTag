@@ -28,7 +28,7 @@ class AlarmReceiver : BroadcastReceiver() {
             "Alarm triggered: id=$alarmId at %02d:%02d (%s)".format(hour, minute, dismissType.name)
         )
 
-        WakeTagAlarmManager(appContext).scheduleAlarm(
+        val scheduled = WakeTagAlarmManager(appContext).scheduleAlarm(
             Alarm(
                 id = alarmId,
                 hour = hour,
@@ -37,6 +37,9 @@ class AlarmReceiver : BroadcastReceiver() {
                 dismissType = dismissType
             )
         )
+        if (!scheduled) {
+            Log.e("WakeTag", "Failed to re-schedule repeating alarm id=$alarmId")
+        }
         AlarmSoundPlayer.play(appContext)
         appContext.startActivity(
             AlarmScreenActivity.createIntent(

@@ -1,6 +1,7 @@
 package com.savarez.waketag.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,24 +28,49 @@ fun AlarmTimePicker(
     onMinuteChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        NumberDropdownPicker(
-            label = "Hour",
-            value = hour,
-            range = 0..23,
-            onValueChange = onHourChange,
-            modifier = Modifier.weight(1f)
-        )
-        NumberDropdownPicker(
-            label = "Minute",
-            value = minute,
-            range = 0..59,
-            onValueChange = onMinuteChange,
-            modifier = Modifier.weight(1f)
-        )
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val compact = maxWidth < 360.dp
+        if (compact) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                NumberDropdownPicker(
+                    label = "Hour",
+                    value = hour,
+                    range = 0..23,
+                    onValueChange = onHourChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                NumberDropdownPicker(
+                    label = "Minute",
+                    value = minute,
+                    range = 0..59,
+                    onValueChange = onMinuteChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                NumberDropdownPicker(
+                    label = "Hour",
+                    value = hour,
+                    range = 0..23,
+                    onValueChange = onHourChange,
+                    modifier = Modifier.weight(1f)
+                )
+                NumberDropdownPicker(
+                    label = "Minute",
+                    value = minute,
+                    range = 0..59,
+                    onValueChange = onMinuteChange,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package com.savarez.waketag
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -25,6 +26,8 @@ private enum class WakeTagScreen {
     CREATE_ALARM
 }
 
+private const val WAKE_TAG_APP_LOG_TAG = "WakeTagApp"
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,8 +48,9 @@ private fun WakeTagApp() {
     val alarmStore = remember { InMemoryAlarmStore() }
     val alarmManager = remember { WakeTagAlarmManager(context.applicationContext) }
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
+    val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
 
-    when (WakeTagScreen.valueOf(currentScreen)) {
+    when (resolvedScreen) {
         WakeTagScreen.HOME -> {
             HomeScreen(
                 alarms = alarmStore.alarms,
@@ -54,7 +58,16 @@ private fun WakeTagApp() {
                 onAlarmEnabledChange = { alarmId, enabled ->
                     val updatedAlarm = alarmStore.setEnabled(alarmId, enabled)
                     if (enabled) {
-                        updatedAlarm?.let(alarmManager::scheduleAlarm)
+                        updatedAlarm?.let { alarm ->
+                            val isScheduled = alarmManager.scheduleAlarm(alarm)
+                            if (!isScheduled) {
+                                alarmStore.setEnabled(alarmId, false)
+                                Log.e(
+                                    WAKE_TAG_APP_LOG_TAG,
+                                    "Failed to enable alarm id=$alarmId; reverting to disabled state"
+                                )
+                            }
+                        }
                     } else {
                         alarmManager.cancelAlarm(alarmId)
                     }
@@ -70,8 +83,23 @@ private fun WakeTagApp() {
             CreateAlarmScreen(
                 onBackClick = { currentScreen = WakeTagScreen.HOME.name },
                 onSaveAlarm = { hour, minute, dismissType ->
+                    if (!alarmManager.isValidTime(hour, minute)) {
+                        Log.e(
+                            WAKE_TAG_APP_LOG_TAG,
+                            "Skipping save due to invalid time input: %02d:%02d".format(hour, minute)
+                        )
+                        return@CreateAlarmScreen
+                    }
+
                     val alarm = alarmStore.addAlarm(hour, minute, dismissType)
-                    alarmManager.scheduleAlarm(alarm)
+                    val isScheduled = alarmManager.scheduleAlarm(alarm)
+                    if (!isScheduled) {
+                        alarmStore.setEnabled(alarm.id, false)
+                        Log.e(
+                            WAKE_TAG_APP_LOG_TAG,
+                            "Alarm saved but scheduling failed for id=${alarm.id}; marked disabled"
+                        )
+                    }
                     currentScreen = WakeTagScreen.HOME.name
                 }
             )
