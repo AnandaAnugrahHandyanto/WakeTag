@@ -2,6 +2,7 @@ package com.savarez.waketag
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -48,7 +49,28 @@ private fun WakeTagApp() {
     val alarmStore = remember { InMemoryAlarmStore() }
     val alarmManager = remember { WakeTagAlarmManager(context.applicationContext) }
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
+    var exactAlarmPromptShown by rememberSaveable { mutableStateOf(false) }
     val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
+
+    fun maybePromptForExactAlarmAccess() {
+        if (exactAlarmPromptShown || alarmManager.canScheduleExactAlarms()) {
+            return
+        }
+
+        exactAlarmPromptShown = true
+        Toast.makeText(
+            context,
+            "Enable exact alarms for reliable WakeTag triggers.",
+            Toast.LENGTH_LONG
+        ).show()
+        alarmManager.createExactAlarmSettingsIntent()?.let { settingsIntent ->
+            Log.w(
+                WAKE_TAG_APP_LOG_TAG,
+                "Exact alarm access unavailable; opening system settings for reliable alarm timing"
+            )
+            context.startActivity(settingsIntent)
+        }
+    }
 
     when (resolvedScreen) {
         WakeTagScreen.HOME -> {
@@ -60,6 +82,7 @@ private fun WakeTagApp() {
                     if (enabled) {
                         updatedAlarm?.let { alarm ->
                             val isScheduled = alarmManager.scheduleAlarm(alarm)
+                            maybePromptForExactAlarmAccess()
                             if (!isScheduled) {
                                 alarmStore.setEnabled(alarmId, false)
                                 Log.e(
@@ -93,6 +116,7 @@ private fun WakeTagApp() {
 
                     val alarm = alarmStore.addAlarm(hour, minute, dismissType)
                     val isScheduled = alarmManager.scheduleAlarm(alarm)
+                    maybePromptForExactAlarmAccess()
                     if (!isScheduled) {
                         alarmStore.setEnabled(alarm.id, false)
                         Log.e(

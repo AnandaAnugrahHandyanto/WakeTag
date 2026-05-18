@@ -1,11 +1,15 @@
 package com.savarez.waketag.alarm
 
 import android.app.AlarmManager
+import android.app.AlarmManager.AlarmClockInfo
 import android.app.PendingIntent
-import android.os.Build
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
+import com.savarez.waketag.MainActivity
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.receiver.AlarmReceiver
@@ -24,16 +28,33 @@ class WakeTagAlarmManager(
             return false
         }
 
+        val now = Calendar.getInstance()
         val triggerTime = calculateNextTriggerTime(alarm.hour, alarm.minute)
+        val requestCode = createRequestCode(alarm.id)
         val pendingIntent = createSchedulePendingIntent(
             alarmId = alarm.id,
             hour = alarm.hour,
             minute = alarm.minute,
             dismissType = alarm.dismissType
         )
+        val canScheduleExact = canScheduleExactAlarms()
+
+        Log.d(
+            TAG,
+            "Scheduling alarm id=${alarm.id}, requestCode=$requestCode, now=${now.timeInMillis}, triggerAt=$triggerTime, exactAllowed=$canScheduleExact"
+        )
 
         return runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            if (canScheduleExact) {
+                alarmManager.setAlarmClock(
+                    AlarmClockInfo(triggerTime, createAlarmClockInfoIntent(alarm.id)),
+                    pendingIntent
+                )
+                Log.d(
+                    TAG,
+                    "Alarm scheduled with setAlarmClock for id=${alarm.id} at $triggerTime"
+                )
+            } else {
                 Log.w(
                     TAG,
                     "Exact alarm permission unavailable; scheduling inexact alarm for id=${alarm.id}"
@@ -43,11 +64,9 @@ class WakeTagAlarmManager(
                     triggerTime,
                     pendingIntent
                 )
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTime,
-                    pendingIntent
+                Log.d(
+                    TAG,
+                    "Alarm scheduled with setAndAllowWhileIdle for id=${alarm.id} at $triggerTime"
                 )
             }
             true
@@ -61,6 +80,20 @@ class WakeTagAlarmManager(
         return hour in 0..23 && minute in 0..59
     }
 
+    fun canScheduleExactAlarms(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+    }
+
+    fun createExactAlarmSettingsIntent(): Intent? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return null
+        }
+        return Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+            data = Uri.parse("package:${context.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    }
+
     fun cancelAlarm(alarmId: Long) {
         val pendingIntent = createCancelPendingIntent(
             alarmId = alarmId,
@@ -70,6 +103,7 @@ class WakeTagAlarmManager(
         )
 
         pendingIntent?.let {
+            Log.d(TAG, "Cancelling alarm id=$alarmId requestCode=${createRequestCode(alarmId)}")
             alarmManager.cancel(it)
             it.cancel()
         }
@@ -98,7 +132,7 @@ class WakeTagAlarmManager(
         return createAlarmIntent(alarmId, hour, minute, dismissType).let { intent ->
             PendingIntent.getBroadcast(
                 context,
-                alarmId.hashCode(),
+                createRequestCode(alarmId),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -113,9 +147,22 @@ class WakeTagAlarmManager(
     ): PendingIntent? {
         return PendingIntent.getBroadcast(
             context,
-            alarmId.hashCode(),
+            createRequestCode(alarmId),
             createAlarmIntent(alarmId, hour, minute, dismissType),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createAlarmClockInfoIntent(alarmId: Long): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(EXTRA_ALARM_ID, alarmId)
+
+        return PendingIntent.getActivity(
+            context,
+            createRequestCode(alarmId) + ALARM_CLOCK_REQUEST_OFFSET,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
 
@@ -126,14 +173,20 @@ class WakeTagAlarmManager(
         dismissType: DismissType
     ): Intent {
         return Intent(context, AlarmReceiver::class.java)
+            .setAction(ACTION_TRIGGER_ALARM)
+            .setPackage(context.packageName)
             .putExtra(EXTRA_ALARM_ID, alarmId)
             .putExtra(EXTRA_ALARM_HOUR, hour)
             .putExtra(EXTRA_ALARM_MINUTE, minute)
             .putExtra(EXTRA_DISMISS_TYPE, dismissType.name)
     }
 
+    private fun createRequestCode(alarmId: Long): Int = alarmId.hashCode()
+
     companion object {
         private const val TAG = "WakeTagAlarmManager"
+        private const val ALARM_CLOCK_REQUEST_OFFSET = 10_000
+        const val ACTION_TRIGGER_ALARM = "com.savarez.waketag.action.TRIGGER_ALARM"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_ALARM_HOUR = "extra_alarm_hour"
         const val EXTRA_ALARM_MINUTE = "extra_alarm_minute"

@@ -35,6 +35,7 @@ object AlarmSoundPlayer {
                 start()
             }
         }.onSuccess { player ->
+            Log.d(ALARM_SOUND_PLAYER_LOG_TAG, "Alarm ringtone started with uri=$alarmUri")
             mediaPlayer = player
         }.onFailure { throwable ->
             Log.e(ALARM_SOUND_PLAYER_LOG_TAG, "Failed to start alarm sound", throwable)
@@ -44,6 +45,7 @@ object AlarmSoundPlayer {
 
     fun stop() {
         mediaPlayer?.runCatching {
+            Log.d(ALARM_SOUND_PLAYER_LOG_TAG, "Stopping alarm ringtone playback")
             if (isPlaying) {
                 stop()
             }
