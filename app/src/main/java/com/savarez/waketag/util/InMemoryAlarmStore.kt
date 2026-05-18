@@ -13,23 +13,26 @@ class InMemoryAlarmStore {
 
     val alarms: List<Alarm> = _alarms
 
-    fun addAlarm(hour: Int, minute: Int, dismissType: DismissType) {
-        _alarms.add(
-            Alarm(
-                id = nextId++,
-                hour = hour,
-                minute = minute,
-                enabled = true,
-                dismissType = dismissType
-            )
+    fun addAlarm(hour: Int, minute: Int, dismissType: DismissType): Alarm {
+        val alarm = Alarm(
+            id = nextId++,
+            hour = hour,
+            minute = minute,
+            enabled = true,
+            dismissType = dismissType
         )
+        _alarms.add(alarm)
+        return alarm
     }
 
-    fun setEnabled(id: Long, enabled: Boolean) {
+    fun setEnabled(id: Long, enabled: Boolean): Alarm? {
         val index = _alarms.indexOfFirst { it.id == id }
         if (index != -1) {
-            _alarms[index] = _alarms[index].copy(enabled = enabled)
+            val updatedAlarm = _alarms[index].copy(enabled = enabled)
+            _alarms[index] = updatedAlarm
+            return updatedAlarm
         }
+        return null
     }
 
     fun deleteAlarm(id: Long) {

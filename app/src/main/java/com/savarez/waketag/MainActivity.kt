@@ -12,7 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
 import com.savarez.waketag.ui.screen.HomeScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
@@ -39,7 +41,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun WakeTagApp() {
+    val context = LocalContext.current
     val alarmStore = remember { InMemoryAlarmStore() }
+    val alarmManager = remember { WakeTagAlarmManager(context.applicationContext) }
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
 
     when (WakeTagScreen.valueOf(currentScreen)) {
@@ -47,8 +51,18 @@ private fun WakeTagApp() {
             HomeScreen(
                 alarms = alarmStore.alarms,
                 onCreateAlarmClick = { currentScreen = WakeTagScreen.CREATE_ALARM.name },
-                onAlarmEnabledChange = alarmStore::setEnabled,
-                onDeleteAlarmClick = alarmStore::deleteAlarm
+                onAlarmEnabledChange = { alarmId, enabled ->
+                    val updatedAlarm = alarmStore.setEnabled(alarmId, enabled)
+                    if (enabled) {
+                        updatedAlarm?.let(alarmManager::scheduleAlarm)
+                    } else {
+                        alarmManager.cancelAlarm(alarmId)
+                    }
+                },
+                onDeleteAlarmClick = { alarmId ->
+                    alarmManager.cancelAlarm(alarmId)
+                    alarmStore.deleteAlarm(alarmId)
+                }
             )
         }
 
@@ -56,7 +70,8 @@ private fun WakeTagApp() {
             CreateAlarmScreen(
                 onBackClick = { currentScreen = WakeTagScreen.HOME.name },
                 onSaveAlarm = { hour, minute, dismissType ->
-                    alarmStore.addAlarm(hour, minute, dismissType)
+                    val alarm = alarmStore.addAlarm(hour, minute, dismissType)
+                    alarmManager.scheduleAlarm(alarm)
                     currentScreen = WakeTagScreen.HOME.name
                 }
             )
