@@ -36,35 +36,10 @@ jobs:
           mkdir -p app/build/outputs/apk/release/
           cp app/build/outputs/apk/release/*.apk app/build/outputs/apk/release/WakeTag.apk
 
-      - name: Delete existing latest release and tag
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const tag = 'latest';
-
-            try {
-              const release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-              await github.rest.repos.deleteRelease({ owner, repo, release_id: release.data.id });
-              console.log('Release lama sukses dihapus.');
-            } catch (error) {
-              if (error.status !== 404) throw error;
-              console.log('Release lama memang tidak ada, aman.');
-            }
-
-            try {
-              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
-              console.log('Tag lama sukses dihapus.');
-            } catch (error) {
-              if (error.status !== 404 && error.status !== 422) throw error;
-              console.log('Tag lama memang tidak ada, aman.');
-            }
-
-      - name: Create rolling latest release
+      - name: Create Unique Auto Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: WakeTag Latest Build
+          tag_name: "v${{ github.run_number }}"
+          name: "WakeTag Build v${{ github.run_number }}"
           generate_release_notes: true
           files: app/build/outputs/apk/release/WakeTag.apk

@@ -18,12 +18,11 @@ class WakeTagAlarmManager(
 
     fun scheduleAlarm(alarm: Alarm): Long {
         val triggerTime = calculateNextTriggerTime(alarm.hour, alarm.minute)
-        val pendingIntent = createPendingIntent(
+        val pendingIntent = createSchedulePendingIntent(
             alarmId = alarm.id,
             hour = alarm.hour,
             minute = alarm.minute,
-            dismissType = alarm.dismissType,
-            flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            dismissType = alarm.dismissType
         )
 
         alarmManager.setExactAndAllowWhileIdle(
@@ -36,12 +35,11 @@ class WakeTagAlarmManager(
     }
 
     fun cancelAlarm(alarmId: Long) {
-        val pendingIntent = createPendingIntent(
+        val pendingIntent = createCancelPendingIntent(
             alarmId = alarmId,
             hour = 0,
             minute = 0,
-            dismissType = DismissType.NORMAL,
-            flags = PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            dismissType = DismissType.NORMAL
         )
 
         pendingIntent?.let {
@@ -64,25 +62,47 @@ class WakeTagAlarmManager(
         }.timeInMillis
     }
 
-    private fun createPendingIntent(
+    private fun createSchedulePendingIntent(
         alarmId: Long,
         hour: Int,
         minute: Int,
-        dismissType: DismissType,
-        flags: Int
+        dismissType: DismissType
+    ): PendingIntent {
+        return createAlarmIntent(alarmId, hour, minute, dismissType).let { intent ->
+            PendingIntent.getBroadcast(
+                context,
+                alarmId.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+    }
+
+    private fun createCancelPendingIntent(
+        alarmId: Long,
+        hour: Int,
+        minute: Int,
+        dismissType: DismissType
     ): PendingIntent? {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        return PendingIntent.getBroadcast(
+            context,
+            alarmId.hashCode(),
+            createAlarmIntent(alarmId, hour, minute, dismissType),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createAlarmIntent(
+        alarmId: Long,
+        hour: Int,
+        minute: Int,
+        dismissType: DismissType
+    ): Intent {
+        return Intent(context, AlarmReceiver::class.java)
             .putExtra(EXTRA_ALARM_ID, alarmId)
             .putExtra(EXTRA_ALARM_HOUR, hour)
             .putExtra(EXTRA_ALARM_MINUTE, minute)
             .putExtra(EXTRA_DISMISS_TYPE, dismissType.name)
-
-        return PendingIntent.getBroadcast(
-            context,
-            alarmId.toInt(),
-            intent,
-            flags
-        )
     }
 
     companion object {
