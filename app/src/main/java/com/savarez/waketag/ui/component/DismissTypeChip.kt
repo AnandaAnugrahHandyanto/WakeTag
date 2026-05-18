@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.displayLabel
 
 @Composable
 fun DismissTypeChip(
@@ -19,7 +20,7 @@ fun DismissTypeChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text = dismissType.name) },
+        label = { Text(text = dismissType.displayLabel) },
         modifier = modifier,
         border = FilterChipDefaults.filterChipBorder(enabled = true, selected = selected)
     )

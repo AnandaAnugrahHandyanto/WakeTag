@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +33,7 @@ private const val CREATE_ALARM_LOG_TAG = "CreateAlarmScreen"
 @Composable
 fun CreateAlarmScreen(
     modifier: Modifier = Modifier,
+    onBackClick: () -> Unit = {},
     onSaveAlarm: (hour: Int, minute: Int, dismissType: DismissType) -> Unit = { hour, minute, dismissType ->
         Log.d(
             CREATE_ALARM_LOG_TAG,
@@ -50,6 +52,7 @@ fun CreateAlarmScreen(
         onHourChange = { selectedHour = it },
         onMinuteChange = { selectedMinute = it },
         onDismissTypeChange = { selectedDismissType = it },
+        onBackClick = onBackClick,
         onSaveClick = { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType) },
         modifier = modifier
     )
@@ -63,6 +66,7 @@ fun CreateAlarmContent(
     onHourChange: (Int) -> Unit,
     onMinuteChange: (Int) -> Unit,
     onDismissTypeChange: (DismissType) -> Unit,
+    onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -107,11 +111,22 @@ fun CreateAlarmContent(
                 }
             }
 
-            Button(
-                onClick = onSaveClick,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Save")
+                OutlinedButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Cancel")
+                }
+                Button(
+                    onClick = onSaveClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Save")
+                }
             }
         }
     }
@@ -128,6 +143,7 @@ private fun CreateAlarmContentPreview() {
             onHourChange = {},
             onMinuteChange = {},
             onDismissTypeChange = {},
+            onBackClick = {},
             onSaveClick = {}
         )
     }
