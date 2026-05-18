@@ -1,17 +1,23 @@
 package com.savarez.waketag
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.savarez.waketag.ui.screen.CreateAlarmScreen
+import com.savarez.waketag.ui.screen.HomeScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
+
+private const val MAIN_ACTIVITY_LOG_TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,29 +25,28 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WakeTagTheme {
+                var showCreateAlarmScreen by rememberSaveable { mutableStateOf(false) }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    if (showCreateAlarmScreen) {
+                        CreateAlarmScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onSaveAlarm = { hour, minute, dismissType ->
+                                Log.d(
+                                    MAIN_ACTIVITY_LOG_TAG,
+                                    "Alarm selected: %02d:%02d (%s)".format(hour, minute, dismissType.name)
+                                )
+                                showCreateAlarmScreen = false
+                            }
+                        )
+                    } else {
+                        HomeScreen(
+                            onCreateAlarmClick = { showCreateAlarmScreen = true },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    WakeTagTheme {
-        Greeting("Android")
     }
 }
