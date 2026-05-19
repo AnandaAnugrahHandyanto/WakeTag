@@ -35,7 +35,8 @@ class WakeTagAlarmManager(
             alarmId = alarm.id,
             hour = alarm.hour,
             minute = alarm.minute,
-            dismissType = alarm.dismissType
+            dismissType = alarm.dismissType,
+            scheduledAtMillis = triggerTime
         )
         val canScheduleExact = canScheduleExactAlarms()
 
@@ -127,9 +128,16 @@ class WakeTagAlarmManager(
         alarmId: Long,
         hour: Int,
         minute: Int,
-        dismissType: DismissType
+        dismissType: DismissType,
+        scheduledAtMillis: Long
     ): PendingIntent {
-        return createAlarmIntent(alarmId, hour, minute, dismissType).let { intent ->
+        return createAlarmIntent(
+            alarmId = alarmId,
+            hour = hour,
+            minute = minute,
+            dismissType = dismissType,
+            scheduledAtMillis = scheduledAtMillis
+        ).let { intent ->
             PendingIntent.getBroadcast(
                 context,
                 createRequestCode(alarmId),
@@ -148,7 +156,13 @@ class WakeTagAlarmManager(
         return PendingIntent.getBroadcast(
             context,
             createRequestCode(alarmId),
-            createAlarmIntent(alarmId, hour, minute, dismissType),
+            createAlarmIntent(
+                alarmId = alarmId,
+                hour = hour,
+                minute = minute,
+                dismissType = dismissType,
+                scheduledAtMillis = 0L
+            ),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
     }
@@ -170,7 +184,8 @@ class WakeTagAlarmManager(
         alarmId: Long,
         hour: Int,
         minute: Int,
-        dismissType: DismissType
+        dismissType: DismissType,
+        scheduledAtMillis: Long
     ): Intent {
         return Intent(context, AlarmReceiver::class.java)
             .setAction(ACTION_TRIGGER_ALARM)
@@ -179,6 +194,7 @@ class WakeTagAlarmManager(
             .putExtra(EXTRA_ALARM_HOUR, hour)
             .putExtra(EXTRA_ALARM_MINUTE, minute)
             .putExtra(EXTRA_DISMISS_TYPE, dismissType.name)
+            .putExtra(EXTRA_SCHEDULED_AT_MILLIS, scheduledAtMillis)
     }
 
     private fun createRequestCode(alarmId: Long): Int = alarmId.hashCode()
@@ -191,5 +207,6 @@ class WakeTagAlarmManager(
         const val EXTRA_ALARM_HOUR = "extra_alarm_hour"
         const val EXTRA_ALARM_MINUTE = "extra_alarm_minute"
         const val EXTRA_DISMISS_TYPE = "extra_dismiss_type"
+        const val EXTRA_SCHEDULED_AT_MILLIS = "extra_scheduled_at_millis"
     }
 }
