@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.alarm.WakeTagAlarmManager
-import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.service.AlarmPlaybackService

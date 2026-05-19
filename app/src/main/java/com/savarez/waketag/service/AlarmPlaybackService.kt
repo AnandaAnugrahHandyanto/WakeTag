@@ -12,8 +12,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.savarez.waketag.R
 import com.savarez.waketag.alarm.AlarmTriggerPayload
-import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.screen.AlarmScreenActivity
+import com.savarez.waketag.util.displayLabel
 
 class AlarmPlaybackService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -125,15 +125,7 @@ class AlarmPlaybackService : Service() {
 
         fun dismiss(context: Context) {
             val intent = Intent(context, AlarmPlaybackService::class.java).setAction(ACTION_DISMISS)
-            ContextCompat.startForegroundService(context, intent)
+            context.startService(intent)
         }
     }
 }
-
-private val DismissType.displayLabel: String
-    get() = when (this) {
-        DismissType.NORMAL -> "Normal"
-        DismissType.NFC -> "NFC"
-        DismissType.QR -> "QR"
-        DismissType.PHOTO -> "Photo"
-    }
