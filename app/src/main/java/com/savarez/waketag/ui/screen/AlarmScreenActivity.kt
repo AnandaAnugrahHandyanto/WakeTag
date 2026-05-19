@@ -8,25 +8,35 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.alarm.WakeTagAlarmManager
+import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
-import com.savarez.waketag.service.AlarmSoundPlayer
+import com.savarez.waketag.data.repository.AlarmRepositoryProvider
+import com.savarez.waketag.service.AlarmPlaybackService
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.displayLabel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class AlarmScreenActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,16 +64,29 @@ class AlarmScreenActivity : ComponentActivity() {
             .getStringExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE)
             ?.let { name -> DismissType.entries.firstOrNull { it.name == name } }
             ?: DismissType.NORMAL
+        val alarmId = intent.getLongExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, -1L)
 
         setContent {
             WakeTagTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    color = Color.Black
+                ) {
                     AlarmScreenContent(
                         hour = hour,
                         minute = minute,
                         dismissType = dismissType,
                         onDismissClick = {
-                            AlarmSoundPlayer.stop()
+                            if (alarmId >= 0L) {
+                                val appContext = applicationContext
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    AlarmRepositoryProvider.get(appContext).setAlarmEnabled(alarmId, false)
+                                    WakeTagAlarmManager(appContext).cancelAlarm(alarmId)
+                                }
+                            }
+                            AlarmPlaybackService.dismiss(this)
                             finish()
                         }
                     )
@@ -72,21 +95,16 @@ class AlarmScreenActivity : ComponentActivity() {
         }
     }
 
-    override fun onDestroy() {
-        if (isFinishing) {
-            AlarmSoundPlayer.stop()
-        }
-        super.onDestroy()
-    }
-
     companion object {
         fun createIntent(
             context: Context,
+            alarmId: Long,
             hour: Int,
             minute: Int,
             dismissType: String
         ): Intent {
             return Intent(context, AlarmScreenActivity::class.java)
+                .putExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, alarmId)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, hour)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, minute)
                 .putExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE, dismissType)
@@ -111,24 +129,37 @@ fun AlarmScreenContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp, vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "%02d:%02d".format(hour, minute),
-            style = MaterialTheme.typography.displayLarge
-        )
-        Text(
-            text = dismissType.displayLabel,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+        Spacer(modifier = Modifier.height(1.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Alarm",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "%02d:%02d".format(hour, minute),
+                style = MaterialTheme.typography.displayLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = dismissType.displayLabel,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 14.dp)
+            )
+        }
         Button(
             onClick = onDismissClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
             modifier = Modifier
-                .padding(top = 32.dp)
+                .padding(top = 24.dp)
                 .fillMaxWidth()
         ) {
             Text(text = "Dismiss")

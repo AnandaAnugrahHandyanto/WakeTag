@@ -5,10 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.savarez.waketag.data.model.Alarm
-import com.savarez.waketag.data.model.DismissType
+import com.savarez.waketag.alarm.AlarmTriggerPayload
 import com.savarez.waketag.alarm.WakeTagAlarmManager
-import com.savarez.waketag.service.AlarmSoundPlayer
-import com.savarez.waketag.ui.screen.AlarmScreenActivity
+import com.savarez.waketag.service.AlarmPlaybackService
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -19,52 +18,36 @@ class AlarmReceiver : BroadcastReceiver() {
             "WakeTag",
             "AlarmReceiver invoked with action=${intent?.action}, receivedAt=$triggeredAtMillis"
         )
-        val alarmId = intent?.getLongExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, -1L) ?: -1L
-        if (alarmId < 0L) return
-        val hour = intent?.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, 0) ?: 0
-        val minute = intent?.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, 0) ?: 0
-        val scheduledAtMillis = intent?.getLongExtra(WakeTagAlarmManager.EXTRA_SCHEDULED_AT_MILLIS, 0L) ?: 0L
+        val payload = AlarmTriggerPayload.fromIntent(intent) ?: return
+        val scheduledAtMillis = payload.scheduledAtMillis
         val triggerDelayMillis = if (scheduledAtMillis > 0L) {
             triggeredAtMillis - scheduledAtMillis
         } else {
             -1L
         }
-        val dismissType = intent
-            ?.getStringExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE)
-            ?.let { name -> DismissType.entries.firstOrNull { it.name == name } }
-            ?: DismissType.NORMAL
 
         Log.d(
             "WakeTag",
-            "Alarm triggered: id=$alarmId at %02d:%02d (%s), scheduledAt=$scheduledAtMillis, triggeredAt=$triggeredAtMillis, delayMs=$triggerDelayMillis"
-                .format(hour, minute, dismissType.name)
+            "Alarm triggered: id=${payload.alarmId} at %02d:%02d (%s), scheduledAt=$scheduledAtMillis, triggeredAt=$triggeredAtMillis, delayMs=$triggerDelayMillis"
+                .format(payload.hour, payload.minute, payload.dismissType.name)
         )
-        Log.d("WakeTag", "Starting alarm sound for id=$alarmId")
-        AlarmSoundPlayer.play(appContext)
+        Log.d("WakeTag", "Starting alarm playback service for id=${payload.alarmId}")
         runCatching {
-            Log.d("WakeTag", "Launching fullscreen alarm activity for id=$alarmId")
-            appContext.startActivity(
-                AlarmScreenActivity.createIntent(
-                    context = appContext,
-                    hour = hour,
-                    minute = minute,
-                    dismissType = dismissType.name
-                )
-            )
+            AlarmPlaybackService.start(appContext, payload)
         }.onFailure { throwable ->
-            Log.e("WakeTag", "Failed to launch fullscreen alarm activity for id=$alarmId", throwable)
+            Log.e("WakeTag", "Failed to start alarm playback service for id=${payload.alarmId}", throwable)
         }
         val scheduled = WakeTagAlarmManager(appContext).scheduleAlarm(
             Alarm(
-                id = alarmId,
-                hour = hour,
-                minute = minute,
+                id = payload.alarmId,
+                hour = payload.hour,
+                minute = payload.minute,
                 enabled = true,
-                dismissType = dismissType
+                dismissType = payload.dismissType
             )
         )
         if (!scheduled) {
-            Log.e("WakeTag", "Failed to re-schedule repeating alarm id=$alarmId")
+            Log.e("WakeTag", "Failed to re-schedule repeating alarm id=${payload.alarmId}")
         }
     }
 }

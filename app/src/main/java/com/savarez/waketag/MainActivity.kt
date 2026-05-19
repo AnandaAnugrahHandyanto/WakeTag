@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +26,7 @@ import com.savarez.waketag.ui.screen.CreateAlarmScreen
 import com.savarez.waketag.ui.screen.HomeScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 private enum class WakeTagScreen {
     HOME,
@@ -57,6 +59,12 @@ private fun WakeTagApp() {
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
     var editingAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exactAlarmPromptShown by rememberSaveable { mutableStateOf(false) }
+    var createHour by rememberSaveable {
+        mutableIntStateOf(Calendar.getInstance().get(Calendar.HOUR_OF_DAY))
+    }
+    var createMinute by rememberSaveable {
+        mutableIntStateOf(Calendar.getInstance().get(Calendar.MINUTE))
+    }
     val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
 
     suspend fun syncAlarmSchedule(alarmId: Long, enabled: Boolean) {
@@ -103,6 +111,9 @@ private fun WakeTagApp() {
             HomeScreen(
                 alarms = alarms,
                 onCreateAlarmClick = {
+                    val now = Calendar.getInstance()
+                    createHour = now.get(Calendar.HOUR_OF_DAY)
+                    createMinute = now.get(Calendar.MINUTE)
                     editingAlarmId = null
                     currentScreen = WakeTagScreen.EDIT_ALARM.name
                 },
@@ -132,8 +143,8 @@ private fun WakeTagApp() {
             CreateAlarmScreen(
                 title = if (editingAlarm == null) "Create Alarm" else "Edit Alarm",
                 saveButtonText = if (editingAlarm == null) "Save" else "Update",
-                initialHour = editingAlarm?.hour ?: 7,
-                initialMinute = editingAlarm?.minute ?: 0,
+                initialHour = editingAlarm?.hour ?: createHour,
+                initialMinute = editingAlarm?.minute ?: createMinute,
                 initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
                 initialEnabled = editingAlarm?.enabled ?: true,
                 showEnabledToggle = editingAlarm != null,

@@ -97,7 +97,13 @@ object AlarmSoundPlayer {
         runCatching {
             val pattern = longArrayOf(0L, 500L, 500L)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                resolvedVibrator.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                resolvedVibrator.vibrate(
+                    VibrationEffect.createWaveform(pattern, 0),
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
             } else {
                 @Suppress("DEPRECATION")
                 resolvedVibrator.vibrate(pattern, 0)
