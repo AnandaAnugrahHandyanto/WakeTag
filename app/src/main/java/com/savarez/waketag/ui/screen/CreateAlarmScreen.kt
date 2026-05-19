@@ -245,6 +245,8 @@ fun CreateAlarmContent(
 private fun CreateAlarmContentPreview() {
     WakeTagTheme {
         CreateAlarmContent(
+            title = "Edit Alarm",
+            saveButtonText = "Update",
             hour = 6,
             minute = 45,
             dismissType = DismissType.QR,
