@@ -29,6 +29,7 @@ fun HomeScreen(
     alarms: List<Alarm>,
     onCreateAlarmClick: () -> Unit,
     onAlarmEnabledChange: (alarmId: Long, enabled: Boolean) -> Unit,
+    onEditAlarmClick: (alarmId: Long) -> Unit,
     onDeleteAlarmClick: (alarmId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -95,6 +96,9 @@ fun HomeScreen(
                                 onEnabledChange = { enabled ->
                                     onAlarmEnabledChange(alarm.id, enabled)
                                 },
+                                onEditClick = {
+                                    onEditAlarmClick(alarm.id)
+                                },
                                 onDeleteClick = {
                                     onDeleteAlarmClick(alarm.id)
                                 }
@@ -115,6 +119,7 @@ private fun HomeScreenEmptyPreview() {
             alarms = emptyList(),
             onCreateAlarmClick = {},
             onAlarmEnabledChange = { _, _ -> },
+            onEditAlarmClick = {},
             onDeleteAlarmClick = {}
         )
     }
@@ -131,6 +136,7 @@ private fun HomeScreenListPreview() {
             ),
             onCreateAlarmClick = {},
             onAlarmEnabledChange = { _, _ -> },
+            onEditAlarmClick = {},
             onDeleteAlarmClick = {}
         )
     }

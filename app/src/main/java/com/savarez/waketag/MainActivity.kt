@@ -9,22 +9,26 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import com.savarez.waketag.alarm.WakeTagAlarmManager
+import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
 import com.savarez.waketag.ui.screen.HomeScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
-import com.savarez.waketag.util.InMemoryAlarmStore
+import kotlinx.coroutines.launch
 
 private enum class WakeTagScreen {
     HOME,
-    CREATE_ALARM
+    EDIT_ALARM
 }
 
 private const val WAKE_TAG_APP_LOG_TAG = "WakeTagApp"
@@ -45,67 +49,99 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun WakeTagApp() {
-    val context = LocalContext.current
-    val alarmStore = remember { InMemoryAlarmStore() }
-    val alarmManager = remember { WakeTagAlarmManager(context.applicationContext) }
+    val context = LocalContext.current.applicationContext
+    val alarmRepository = remember { AlarmRepositoryProvider.get(context) }
+    val alarmManager = remember { WakeTagAlarmManager(context) }
+    val alarms by alarmRepository.alarms.collectAsState(initial = emptyList())
+    val coroutineScope = rememberCoroutineScope()
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
+    var editingAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exactAlarmPromptShown by rememberSaveable { mutableStateOf(false) }
     val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
 
-    fun maybePromptForExactAlarmAccess() {
-        if (exactAlarmPromptShown || alarmManager.canScheduleExactAlarms()) {
-            return
+    suspend fun syncAlarmSchedule(alarmId: Long, enabled: Boolean) {
+        if (enabled) {
+            val alarm = alarmRepository.getAlarmById(alarmId)
+            if (alarm != null) {
+                val isScheduled = alarmManager.scheduleAlarm(alarm)
+                maybePromptForExactAlarmAccess(alarmManager, context, exactAlarmPromptShown) { shown ->
+                    exactAlarmPromptShown = shown
+                }
+                if (!isScheduled) {
+                    alarmRepository.setAlarmEnabled(alarmId, false)
+                    Log.e(
+                        WAKE_TAG_APP_LOG_TAG,
+                        "Failed to schedule alarm id=$alarmId; persisted state reverted to disabled"
+                    )
+                }
+            }
+        } else {
+            alarmManager.cancelAlarm(alarmId)
         }
+    }
 
-        exactAlarmPromptShown = true
-        Toast.makeText(
-            context,
-            "Enable exact alarms for reliable WakeTag triggers.",
-            Toast.LENGTH_LONG
-        ).show()
-        alarmManager.createExactAlarmSettingsIntent()?.let { settingsIntent ->
-            Log.w(
-                WAKE_TAG_APP_LOG_TAG,
-                "Exact alarm access unavailable; opening system settings for reliable alarm timing"
-            )
-            context.startActivity(settingsIntent)
+    LaunchedEffect(Unit) {
+        alarmRepository.getEnabledAlarms().forEach { alarm ->
+            val isScheduled = alarmManager.scheduleAlarm(alarm)
+            if (!isScheduled) {
+                Log.e(WAKE_TAG_APP_LOG_TAG, "Failed to restore scheduled alarm id=${alarm.id}")
+            }
+        }
+        maybePromptForExactAlarmAccess(alarmManager, context, exactAlarmPromptShown) { shown ->
+            exactAlarmPromptShown = shown
+        }
+    }
+
+    fun maybePromptForExactAlarmAccess() {
+        maybePromptForExactAlarmAccess(alarmManager, context, exactAlarmPromptShown) { shown ->
+            exactAlarmPromptShown = shown
         }
     }
 
     when (resolvedScreen) {
         WakeTagScreen.HOME -> {
             HomeScreen(
-                alarms = alarmStore.alarms,
-                onCreateAlarmClick = { currentScreen = WakeTagScreen.CREATE_ALARM.name },
+                alarms = alarms,
+                onCreateAlarmClick = {
+                    editingAlarmId = null
+                    currentScreen = WakeTagScreen.EDIT_ALARM.name
+                },
                 onAlarmEnabledChange = { alarmId, enabled ->
-                    val updatedAlarm = alarmStore.setEnabled(alarmId, enabled)
-                    if (enabled) {
-                        updatedAlarm?.let { alarm ->
-                            val isScheduled = alarmManager.scheduleAlarm(alarm)
-                            maybePromptForExactAlarmAccess()
-                            if (!isScheduled) {
-                                alarmStore.setEnabled(alarmId, false)
-                                Log.e(
-                                    WAKE_TAG_APP_LOG_TAG,
-                                    "Failed to enable alarm id=$alarmId; reverting to disabled state"
-                                )
-                            }
+                    coroutineScope.launch {
+                        val updatedAlarm = alarmRepository.setAlarmEnabled(alarmId, enabled)
+                        if (updatedAlarm != null) {
+                            syncAlarmSchedule(alarmId = alarmId, enabled = enabled)
                         }
-                    } else {
-                        alarmManager.cancelAlarm(alarmId)
                     }
                 },
+                onEditAlarmClick = { alarmId ->
+                    editingAlarmId = alarmId
+                    currentScreen = WakeTagScreen.EDIT_ALARM.name
+                },
                 onDeleteAlarmClick = { alarmId ->
-                    alarmManager.cancelAlarm(alarmId)
-                    alarmStore.deleteAlarm(alarmId)
+                    coroutineScope.launch {
+                        alarmManager.cancelAlarm(alarmId)
+                        alarmRepository.deleteAlarm(alarmId)
+                    }
                 }
             )
         }
 
-        WakeTagScreen.CREATE_ALARM -> {
+        WakeTagScreen.EDIT_ALARM -> {
+            val editingAlarm = alarms.firstOrNull { it.id == editingAlarmId }
             CreateAlarmScreen(
-                onBackClick = { currentScreen = WakeTagScreen.HOME.name },
-                onSaveAlarm = { hour, minute, dismissType ->
+                title = if (editingAlarm == null) "Create Alarm" else "Edit Alarm",
+                saveButtonText = if (editingAlarm == null) "Save" else "Update",
+                initialHour = editingAlarm?.hour ?: 7,
+                initialMinute = editingAlarm?.minute ?: 0,
+                initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
+                initialEnabled = editingAlarm?.enabled ?: true,
+                showEnabledToggle = editingAlarm != null,
+                onBackClick = {
+                    editingAlarmId = null
+                    currentScreen = WakeTagScreen.HOME.name
+                },
+                onSaveAlarm = { hour, minute, dismissType, enabled ->
                     if (!alarmManager.isValidTime(hour, minute)) {
                         Log.e(
                             WAKE_TAG_APP_LOG_TAG,
@@ -113,20 +149,54 @@ private fun WakeTagApp() {
                         )
                         return@CreateAlarmScreen
                     }
+                    coroutineScope.launch {
+                        val alarmId = if (editingAlarmId == null) {
+                            val createdAlarm = alarmRepository.addAlarm(hour, minute, dismissType)
+                            createdAlarm.id
+                        } else {
+                            val existingId = editingAlarmId ?: return@launch
+                            alarmManager.cancelAlarm(existingId)
+                            val updatedAlarm = alarmRepository.updateAlarm(
+                                alarmId = existingId,
+                                hour = hour,
+                                minute = minute,
+                                dismissType = dismissType,
+                                enabled = enabled
+                            )
+                            updatedAlarm?.id ?: existingId
+                        }
 
-                    val alarm = alarmStore.addAlarm(hour, minute, dismissType)
-                    val isScheduled = alarmManager.scheduleAlarm(alarm)
-                    maybePromptForExactAlarmAccess()
-                    if (!isScheduled) {
-                        alarmStore.setEnabled(alarm.id, false)
-                        Log.e(
-                            WAKE_TAG_APP_LOG_TAG,
-                            "Alarm saved but scheduling failed for id=${alarm.id}; marked disabled"
-                        )
+                        syncAlarmSchedule(alarmId = alarmId, enabled = enabled)
+                        maybePromptForExactAlarmAccess()
+                        editingAlarmId = null
+                        currentScreen = WakeTagScreen.HOME.name
                     }
-                    currentScreen = WakeTagScreen.HOME.name
                 }
             )
         }
+    }
+}
+
+private fun maybePromptForExactAlarmAccess(
+    alarmManager: WakeTagAlarmManager,
+    context: android.content.Context,
+    exactAlarmPromptShown: Boolean,
+    onPromptShown: (Boolean) -> Unit
+) {
+    if (exactAlarmPromptShown || alarmManager.canScheduleExactAlarms()) {
+        return
+    }
+    onPromptShown(true)
+    Toast.makeText(
+        context,
+        "Enable exact alarms for reliable WakeTag triggers.",
+        Toast.LENGTH_LONG
+    ).show()
+    alarmManager.createExactAlarmSettingsIntent()?.let { settingsIntent ->
+        Log.w(
+            WAKE_TAG_APP_LOG_TAG,
+            "Exact alarm access unavailable; opening system settings for reliable alarm timing"
+        )
+        context.startActivity(settingsIntent)
     }
 }

@@ -27,6 +27,7 @@ import com.savarez.waketag.util.futureCapabilityHint
 fun AlarmCard(
     alarm: Alarm,
     onEnabledChange: (Boolean) -> Unit,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -58,6 +59,9 @@ fun AlarmCard(
                                 checked = alarm.enabled,
                                 onCheckedChange = onEnabledChange
                             )
+                            TextButton(onClick = onEditClick) {
+                                Text("Edit")
+                            }
                             TextButton(onClick = onDeleteClick) {
                                 Text("Delete")
                             }
@@ -88,6 +92,9 @@ fun AlarmCard(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        TextButton(onClick = onEditClick) {
+                            Text("Edit")
+                        }
                         TextButton(onClick = onDeleteClick) {
                             Text("Delete")
                         }
@@ -136,6 +143,7 @@ private fun AlarmCardPreview() {
                 dismissType = DismissType.QR
             ),
             onEnabledChange = {},
+            onEditClick = {},
             onDeleteClick = {}
         )
     }

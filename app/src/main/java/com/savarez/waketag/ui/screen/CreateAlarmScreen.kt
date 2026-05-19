@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,26 +40,40 @@ private const val CREATE_ALARM_LOG_TAG = "CreateAlarmScreen"
 @Composable
 fun CreateAlarmScreen(
     modifier: Modifier = Modifier,
+    title: String = "Create Alarm",
+    saveButtonText: String = "Save",
+    initialHour: Int = 7,
+    initialMinute: Int = 0,
+    initialDismissType: DismissType = DismissType.NORMAL,
+    initialEnabled: Boolean = true,
+    showEnabledToggle: Boolean = false,
     onBackClick: () -> Unit = {},
-    onSaveAlarm: (hour: Int, minute: Int, dismissType: DismissType) -> Unit = { hour, minute, dismissType ->
+    onSaveAlarm: (hour: Int, minute: Int, dismissType: DismissType, enabled: Boolean) -> Unit = { hour, minute, dismissType, enabled ->
         Log.d(
             CREATE_ALARM_LOG_TAG,
-            "Save alarm tapped: %02d:%02d, dismissType=%s".format(hour, minute, dismissType.name)
+            "Save alarm tapped: %02d:%02d, dismissType=%s, enabled=%s"
+                .format(hour, minute, dismissType.name, enabled)
         )
     }
 ) {
-    var selectedHour by rememberSaveable { mutableIntStateOf(7) }
-    var selectedMinute by rememberSaveable { mutableIntStateOf(0) }
-    var selectedDismissType by rememberSaveable { mutableStateOf(DismissType.NORMAL) }
+    var selectedHour by rememberSaveable(initialHour) { mutableIntStateOf(initialHour) }
+    var selectedMinute by rememberSaveable(initialMinute) { mutableIntStateOf(initialMinute) }
+    var selectedDismissType by rememberSaveable(initialDismissType) { mutableStateOf(initialDismissType) }
+    var selectedEnabled by rememberSaveable(initialEnabled) { mutableStateOf(initialEnabled) }
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
 
     CreateAlarmContent(
+        title = title,
+        saveButtonText = saveButtonText,
         hour = selectedHour,
         minute = selectedMinute,
         dismissType = selectedDismissType,
+        enabled = selectedEnabled,
+        showEnabledToggle = showEnabledToggle,
         onHourChange = { selectedHour = it },
         onMinuteChange = { selectedMinute = it },
         onDismissTypeChange = { selectedDismissType = it },
+        onEnabledChange = { selectedEnabled = it },
         onBackClick = onBackClick,
         onSaveClick = {
             saveError = null
@@ -69,7 +84,7 @@ fun CreateAlarmScreen(
                     "Invalid alarm time selected: %02d:%02d".format(selectedHour, selectedMinute)
                 )
             } else {
-                runCatching { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType) }
+                runCatching { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType, selectedEnabled) }
                     .onFailure { throwable ->
                         saveError = "Failed to save alarm. Please try again."
                         Log.e(CREATE_ALARM_LOG_TAG, "Alarm save failed", throwable)
@@ -83,12 +98,17 @@ fun CreateAlarmScreen(
 
 @Composable
 fun CreateAlarmContent(
+    title: String,
+    saveButtonText: String,
     hour: Int,
     minute: Int,
     dismissType: DismissType,
+    enabled: Boolean,
+    showEnabledToggle: Boolean,
     onHourChange: (Int) -> Unit,
     onMinuteChange: (Int) -> Unit,
     onDismissTypeChange: (DismissType) -> Unit,
+    onEnabledChange: (Boolean) -> Unit,
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
     errorMessage: String? = null,
@@ -119,7 +139,7 @@ fun CreateAlarmContent(
                 verticalArrangement = Arrangement.spacedBy(contentSpacing)
             ) {
                 Text(
-                    text = "Create Alarm",
+                    text = title,
                     style = MaterialTheme.typography.headlineMedium
                 )
 
@@ -152,6 +172,22 @@ fun CreateAlarmContent(
                     }
                 }
 
+                if (showEnabledToggle) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Enabled",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Switch(
+                            checked = enabled,
+                            onCheckedChange = onEnabledChange
+                        )
+                    }
+                }
+
                 errorMessage?.let {
                     Text(
                         text = it,
@@ -177,7 +213,7 @@ fun CreateAlarmContent(
                             onClick = onSaveClick,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(text = "Save")
+                            Text(text = saveButtonText)
                         }
                     }
                 } else {
@@ -195,7 +231,7 @@ fun CreateAlarmContent(
                             onClick = onSaveClick,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "Save")
+                            Text(text = saveButtonText)
                         }
                     }
                 }
@@ -212,9 +248,12 @@ private fun CreateAlarmContentPreview() {
             hour = 6,
             minute = 45,
             dismissType = DismissType.QR,
+            enabled = true,
+            showEnabledToggle = true,
             onHourChange = {},
             onMinuteChange = {},
             onDismissTypeChange = {},
+            onEnabledChange = {},
             onBackClick = {},
             onSaveClick = {}
         )
