@@ -29,13 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.data.model.DismissType
-import com.savarez.waketag.data.repository.AlarmRepositoryProvider
-import com.savarez.waketag.service.AlarmPlaybackService
+import com.savarez.waketag.receiver.AlarmDismissReceiver
 import com.savarez.waketag.ui.theme.WakeTagTheme
-import com.savarez.waketag.util.displayLabel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class AlarmScreenActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,14 +73,10 @@ class AlarmScreenActivity : ComponentActivity() {
                         minute = minute,
                         dismissType = dismissType,
                         onDismissClick = {
-                            if (alarmId >= 0L) {
-                                val appContext = applicationContext
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    AlarmRepositoryProvider.get(appContext).setAlarmEnabled(alarmId, false)
-                                    WakeTagAlarmManager(appContext).cancelAlarm(alarmId)
-                                }
-                            }
-                            AlarmPlaybackService.dismiss(this)
+                            AlarmDismissReceiver.dismissNow(
+                                context = applicationContext,
+                                alarmId = alarmId
+                            )
                             finish()
                         }
                     )
@@ -109,8 +100,8 @@ class AlarmScreenActivity : ComponentActivity() {
                 .putExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE, dismissType)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
                 )
         }
