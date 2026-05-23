@@ -8,10 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.savarez.waketag.R
 import com.savarez.waketag.alarm.AlarmTriggerPayload
+import com.savarez.waketag.receiver.AlarmDismissReceiver
 import com.savarez.waketag.ui.screen.AlarmScreenActivity
 import com.savarez.waketag.util.displayLabel
 
@@ -32,6 +34,7 @@ class AlarmPlaybackService : Service() {
                     START_NOT_STICKY
                 } else {
                     startAlarmPlayback(payload)
+                    launchFullscreenActivity(payload)
                     START_NOT_STICKY
                 }
             }
@@ -69,11 +72,9 @@ class AlarmPlaybackService : Service() {
             fullscreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val dismissPendingIntent = PendingIntent.getService(
-            this,
-            payload.alarmId.hashCode() + DISMISS_REQUEST_CODE_OFFSET,
-            Intent(this, AlarmPlaybackService::class.java).setAction(ACTION_DISMISS),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val dismissPendingIntent = AlarmDismissReceiver.createDismissPendingIntent(
+            context = this,
+            alarmId = payload.alarmId
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -89,6 +90,22 @@ class AlarmPlaybackService : Service() {
             .setContentIntent(fullscreenPendingIntent)
             .addAction(0, "Dismiss", dismissPendingIntent)
             .build()
+    }
+
+    private fun launchFullscreenActivity(payload: AlarmTriggerPayload) {
+        val intent = AlarmScreenActivity.createIntent(
+            context = this,
+            alarmId = payload.alarmId,
+            hour = payload.hour,
+            minute = payload.minute,
+            dismissType = payload.dismissType.name
+        )
+        runCatching {
+            startActivity(intent)
+            Log.d("WakeTag", "Fullscreen alarm activity launched for alarmId=${payload.alarmId}")
+        }.onFailure { throwable ->
+            Log.e("WakeTag", "Failed to launch fullscreen alarm activity for alarmId=${payload.alarmId}", throwable)
+        }
     }
 
     private fun ensureChannel() {
@@ -113,7 +130,6 @@ class AlarmPlaybackService : Service() {
     companion object {
         private const val CHANNEL_ID = "waketag_alarm_channel"
         private const val NOTIFICATION_ID = 1_001
-        private const val DISMISS_REQUEST_CODE_OFFSET = 40_000
         private const val ACTION_START = "com.savarez.waketag.action.START_ALARM_PLAYBACK"
         private const val ACTION_DISMISS = "com.savarez.waketag.action.DISMISS_ALARM_PLAYBACK"
 
@@ -126,6 +142,17 @@ class AlarmPlaybackService : Service() {
         fun dismiss(context: Context) {
             val intent = Intent(context, AlarmPlaybackService::class.java).setAction(ACTION_DISMISS)
             context.startService(intent)
+        }
+
+        fun stopPlaybackNow(context: Context) {
+            AlarmSoundPlayer.stop()
+            cancelNotification(context)
+            context.stopService(Intent(context, AlarmPlaybackService::class.java))
+        }
+
+        fun cancelNotification(context: Context) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.cancel(NOTIFICATION_ID)
         }
     }
 }
