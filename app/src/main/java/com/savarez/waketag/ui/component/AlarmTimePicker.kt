@@ -8,30 +8,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.ui.theme.WakeTagTheme
-import kotlinx.coroutines.delay
 
 @Composable
 fun AlarmTimePicker(
@@ -42,17 +34,21 @@ fun AlarmTimePicker(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+
         val compact = maxWidth < 360.dp
+
         val dropdownMaxHeight = when {
             maxHeight < 700.dp -> 220.dp
             maxHeight < 900.dp -> 280.dp
             else -> 320.dp
         }
+
         if (compact) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
                 NumberDropdownPicker(
                     label = "Hour",
                     value = hour,
@@ -61,6 +57,7 @@ fun AlarmTimePicker(
                     maxDropdownHeight = dropdownMaxHeight,
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 NumberDropdownPicker(
                     label = "Minute",
                     value = minute,
@@ -71,10 +68,12 @@ fun AlarmTimePicker(
                 )
             }
         } else {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
                 NumberDropdownPicker(
                     label = "Hour",
                     value = hour,
@@ -83,6 +82,7 @@ fun AlarmTimePicker(
                     maxDropdownHeight = dropdownMaxHeight,
                     modifier = Modifier.weight(1f)
                 )
+
                 NumberDropdownPicker(
                     label = "Minute",
                     value = minute,
@@ -105,47 +105,68 @@ private fun NumberDropdownPicker(
     maxDropdownHeight: Dp,
     modifier: Modifier = Modifier
 ) {
+
     var expanded by remember { mutableStateOf(false) }
-    var anchorWidthPx by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
-            modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded }
-            ) {
+
+        Box {
+
             OutlinedTextField(
                 value = "%02d".format(value),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(text = label) },
-                trailingIcon = { Text(text = if (expanded) "▲" else "▼") },
+                label = {
+                    Text(text = label)
+                },
+                trailingIcon = {
+                    Text(text = if (expanded) "▲" else "▼")
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-            ) {
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.heightIn(max = maxDropdownHeight)
-                    ) {
-                        range.forEach { option ->
-                        val isSelected = option == value
-                        
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "%02d".format(option)
-                                )
-                            },
-                            onClick = {
-                                onValueChange(option)
-                                expanded = false
-                            }
-                        )
+                    .clickable {
+                        expanded = !expanded
                     }
+            )
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = {
+                    expanded = false
+                },
+                modifier = Modifier.heightIn(max = maxDropdownHeight)
+            ) {
+
+                range.forEach { option ->
+
+                    val isSelected = option == value
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "%02d".format(option),
+                                style = if (isSelected) {
+                                    MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                } else {
+                                    MaterialTheme.typography.bodyLarge
+                                },
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        },
+                        onClick = {
+                            onValueChange(option)
+                            expanded = false
+                        }
+                    )
                 }
             }
         }
