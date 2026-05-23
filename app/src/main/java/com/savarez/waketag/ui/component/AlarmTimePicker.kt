@@ -106,20 +106,7 @@ private fun NumberDropdownPicker(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    val density = LocalDensity.current
     var anchorWidthPx by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(expanded, value, range, maxDropdownHeight) {
-        if (!expanded) return@LaunchedEffect
-        delay(16L)
-        val itemHeightPx = with(density) { 48.dp.roundToPx() }
-        val menuHeightPx = with(density) { maxDropdownHeight.roundToPx() }
-        val index = (value - range.first).coerceIn(0, range.last - range.first)
-        val centeredTarget = (index * itemHeightPx) - ((menuHeightPx - itemHeightPx) / 2)
-        val target = centeredTarget.coerceIn(0, scrollState.maxValue)
-        scrollState.scrollTo(target)
-    }
 
     Column(
         modifier = modifier,
@@ -138,39 +125,19 @@ private fun NumberDropdownPicker(
                 trailingIcon = { Text(text = if (expanded) "▲" else "▼") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onSizeChanged { anchorWidthPx = it.width }
-            )
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .let { base ->
-                        if (anchorWidthPx > 0) {
-                            base.width(with(density) { anchorWidthPx.toDp() })
-                        } else {
-                            base.fillMaxWidth()
-                        }
-                    }
-                    .heightIn(max = maxDropdownHeight)
             ) {
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-                    range.forEach { option ->
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.heightIn(max = maxDropdownHeight)
+                    ) {
+                        range.forEach { option ->
                         val isSelected = option == value
+                        
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = "%02d".format(option),
-                                    style = if (isSelected) {
-                                        MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    } else {
-                                        MaterialTheme.typography.bodyLarge
-                                    },
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    }
+                                    text = "%02d".format(option)
                                 )
                             },
                             onClick = {
