@@ -136,7 +136,7 @@ fun AlarmScreenContent(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = dismissType.displayLabel,
+                text = dismissType.displayName,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 14.dp)
