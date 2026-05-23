@@ -125,7 +125,11 @@ private fun NumberDropdownPicker(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            ) {
             OutlinedTextField(
                 value = "%02d".format(value),
                 onValueChange = {},
@@ -135,7 +139,6 @@ private fun NumberDropdownPicker(
                 modifier = Modifier
                     .fillMaxWidth()
                     .onSizeChanged { anchorWidthPx = it.width }
-                    .clickable { expanded = !expanded }
             )
 
             DropdownMenu(
