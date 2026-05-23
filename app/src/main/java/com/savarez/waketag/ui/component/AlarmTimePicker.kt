@@ -1,28 +1,30 @@
 package com.savarez.waketag.ui.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -95,7 +97,6 @@ fun AlarmTimePicker(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 private fun NumberDropdownPicker(
     label: String,
     value: Int,
@@ -107,6 +108,7 @@ private fun NumberDropdownPicker(
     var expanded by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
+    var anchorWidthPx by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(expanded, value, range, maxDropdownHeight) {
         if (!expanded) return@LaunchedEffect
@@ -123,27 +125,30 @@ private fun NumberDropdownPicker(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = "%02d".format(value),
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(text = label) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                trailingIcon = { Text(text = if (expanded) "▲" else "▼") },
                 modifier = Modifier
-                    .menuAnchor()
                     .fillMaxWidth()
+                    .onSizeChanged { anchorWidthPx = it.width }
+                    .clickable { expanded = !expanded }
             )
 
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = Modifier
-                    .exposedDropdownSize(matchTextFieldWidth = true)
+                    .let { base ->
+                        if (anchorWidthPx > 0) {
+                            base.width(with(density) { anchorWidthPx.toDp() })
+                        } else {
+                            base.fillMaxWidth()
+                        }
+                    }
                     .heightIn(max = maxDropdownHeight)
             ) {
                 Column(modifier = Modifier.verticalScroll(scrollState)) {
