@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -196,17 +195,23 @@ private fun ScrollingNumberPicker(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            TextButton(onClick = { haptic(); onDismiss() }) {
-                Text(text = "Batal")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Geser",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = { haptic(); onDismiss() }) { Text(text = "Selesai") }
             }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .height(232.dp)
                 .draggable(dragState, Orientation.Vertical),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ((value - 2).coerceAtLeast(range.first)..(value + 2).coerceAtMost(range.last)).forEach { option ->
                 NumberOption(
@@ -231,8 +236,8 @@ private fun NumberOption(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .height(42.dp)
+            .clip(RoundedCornerShape(13.dp))
             .background(
                 brush = if (isSelected) {
                     Brush.linearGradient(
@@ -249,15 +254,19 @@ private fun NumberOption(
                         )
                     )
                 },
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(13.dp)
             )
             .clickable { haptic(); onClick() }
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "%02d".format(value),
-            style = MaterialTheme.typography.displayMedium,
+            style = if (isSelected) {
+                MaterialTheme.typography.titleLarge
+            } else {
+                MaterialTheme.typography.bodyLarge
+            },
             fontWeight = if (isSelected) {
                 FontWeight.Bold
             } else {
