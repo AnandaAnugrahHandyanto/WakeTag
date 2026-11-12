@@ -27,7 +27,7 @@ Alarm biasa (tombol "Matikan") tetap disediakan sebagai pembanding saat demo.
 1. Buka aplikasi, izinkan notifikasi jika diminta.
 2. Di kartu **"Tag NFC"**, tekan **Daftarkan Tag**, lalu tempelkan tag
    NFC ke belakang HP. UID tag akan muncul.
-3. Tekan tombol **Alarm baru**, ketuk angka jam/menit, pilih label
+3. Tekan tombol **Alarm baru**, scroll angka jam/menit, pilih label
    **Kuliah/Kerja/Pribadi** (atau tulis label sendiri), pilih metode
    **Tag NFC**, lalu **Simpan**.
 4. Atur alarm sekitar 2 menit ke depan.
@@ -202,3 +202,5 @@ app/build/outputs/apk/debug/app-debug.apk
   pada waktu serta instruksi tag NFC.
 - Tombol **Tunda 5 menit** diletakkan terpisah dari aksi utama agar tidak
   mengalahkan tujuan utama alarm.
+- Pemilih jam dan menit memakai daftar angka yang bisa di-scroll, bukan dialog
+  berisi grid angka kecil. Nilai yang sedang dipilih selalu ikut scroll.
