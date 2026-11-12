@@ -151,7 +151,7 @@ fun CreateAlarmContent(
     dismissType: DismissType,
     enabled: Boolean,
     label: String,
-    daysOfWeek: Int = 127,
+    daysOfWeek: Int = 0,
     showEnabledToggle: Boolean,
     nfcTagRegistered: Boolean,
     onHourChange: (Int) -> Unit,
@@ -188,35 +188,71 @@ fun CreateAlarmContent(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = horizontalPadding, vertical = verticalPadding)
                     .widthIn(max = maxContentWidth),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "WAKE TAG",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.4.sp
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(
+                            text = if (showEnabledToggle) "ALARM / EDIT" else "ALARM / NEW",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 2.2.sp
+                        )
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Bangun dengan ritme yang kamu pilih.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = "01",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+                        )
+                    }
+                }
+
+                EditorSection(
+                    index = "01",
+                    title = "Waktu bangun",
+                    description = "Atur jam ketika WakeTag mulai berbunyi."
+                ) {
+                    AlarmTimePicker(
+                        hour = hour,
+                        minute = minute,
+                        onHourChange = onHourChange,
+                        onMinuteChange = onMinuteChange
                     )
                 }
 
-                AlarmTimePicker(
-                    hour = hour,
-                    minute = minute,
-                    onHourChange = onHourChange,
-                    onMinuteChange = onMinuteChange
-                )
+                EditorSection(
+                    index = "02",
+                    title = "Hari aktif",
+                    description = "Pilih satu atau beberapa hari untuk alarm ini."
+                ) {
+                    ActiveDaysSelector(daysOfWeek = daysOfWeek, onDaysChange = onDaysChange)
+                }
 
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Label alarm",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                EditorSection(
+                    index = "03",
+                    title = "Identitas alarm",
+                    description = "Beri nama agar alarm mudah dikenali."
+                ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         LABEL_PRESETS.forEach { preset ->
                             val selected = label.equals(preset, ignoreCase = true)
@@ -244,15 +280,11 @@ fun CreateAlarmContent(
                     )
                 }
 
-                ActiveDaysSelector(daysOfWeek = daysOfWeek, onDaysChange = onDaysChange)
-
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Metode mematikan",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
+                EditorSection(
+                    index = "04",
+                    title = "Cara mematikan",
+                    description = "Pilih cara alarm ini dihentikan."
+                ) {
                     DismissTypeSelector(
                         selected = dismissType,
                         onSelect = onDismissTypeChange
@@ -338,6 +370,49 @@ fun CreateAlarmContent(
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun EditorSection(
+    index: String,
+    title: String,
+    description: String,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = index,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 3.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            content()
         }
     }
 }
