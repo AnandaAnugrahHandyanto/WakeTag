@@ -36,16 +36,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.savarez.waketag.alarm.SnoozeStore
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
+import com.savarez.waketag.ui.component.AlarmAura
 import com.savarez.waketag.ui.component.AlarmCard
 import com.savarez.waketag.ui.component.AlarmLabelPill
 import com.savarez.waketag.ui.component.NfcTagCard
+import com.savarez.waketag.ui.component.SunriseDial
+import com.savarez.waketag.ui.component.WakeTagBackdrop
 import com.savarez.waketag.ui.component.alarmLabelAccent
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.displayLabel
@@ -112,6 +114,8 @@ fun HomeScreen(
             val verticalPadding = if (maxHeight < 700.dp) 16.dp else 24.dp
             val contentWidth = if (maxWidth > 680.dp) 680.dp else maxWidth
 
+            WakeTagBackdrop()
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -159,18 +163,6 @@ fun HomeScreen(
                         )
                     }
                 }
-
-                item {
-                    Text(
-                        text = "Alarm berbunyi setiap hari selama statusnya aktif.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    )
-                }
             }
         }
     }
@@ -178,47 +170,40 @@ fun HomeScreen(
 
 @Composable
 private fun HomeHeader(todayLabel: String, greeting: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    )
-                    Text(
-                        text = greeting.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.sp
-                    )
-                }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                )
                 Text(
-                    text = "WakeTag",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = greeting.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 2.sp
                 )
             }
             Text(
-                text = todayLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 6.dp)
+                text = "WakeTag",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
         Text(
-            text = "Alarm yang hanya bisa dimatikan dengan tag fisik.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = todayLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 6.dp)
         )
     }
 }
@@ -254,6 +239,7 @@ private fun NextAlarmPanel(nextAlarm: NextAlarmInfo) {
     } else {
         MaterialTheme.colorScheme.primary
     }
+    val onContainer = MaterialTheme.colorScheme.onPrimaryContainer
     val gradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer,
@@ -269,20 +255,17 @@ private fun NextAlarmPanel(nextAlarm: NextAlarmInfo) {
             .background(gradient)
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.26f),
                 shape = shape
             )
     ) {
-        // Lingkaran samar seperti matahari terbit di sudut kanan atas.
-        Box(
+        AlarmAura(
+            color = accent,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 34.dp, y = (-38).dp)
-                .size(118.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    shape = CircleShape
-                )
+                .offset(x = 74.dp, y = (-84).dp)
+                .size(236.dp),
+            ringCount = 2
         )
 
         Column(
@@ -308,7 +291,7 @@ private fun NextAlarmPanel(nextAlarm: NextAlarmInfo) {
                     Text(
                         text = "ALARM BERIKUTNYA",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = onContainer,
                         letterSpacing = 2.sp
                     )
                 }
@@ -318,38 +301,46 @@ private fun NextAlarmPanel(nextAlarm: NextAlarmInfo) {
                     color = if (nextAlarm.isSnooze) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        onContainer.copy(alpha = 0.65f)
                     },
                     letterSpacing = 1.4.sp
                 )
             }
 
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "%02d:%02d".format(nextAlarm.hour, nextAlarm.minute),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = nextAlarm.dayLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                    modifier = Modifier.padding(bottom = 9.dp)
-                )
-            }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "%02d:%02d".format(nextAlarm.hour, nextAlarm.minute),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = onContainer
+                    )
+                    if (nextAlarm.label.isNotBlank()) {
+                        AlarmLabelPill(
+                            label = nextAlarm.label,
+                            prominent = true
+                        )
+                    }
+                }
 
-            if (nextAlarm.label.isNotBlank()) {
-                AlarmLabelPill(
-                    label = nextAlarm.label,
-                    prominent = true
+                SunriseDial(
+                    progress = nextAlarm.progress,
+                    modifier = Modifier.size(104.dp),
+                    accent = accent,
+                    contentColor = onContainer,
+                    centerCaption = "Menuju",
+                    centerLabel = nextAlarm.dayLabel
                 )
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
+                color = onContainer.copy(alpha = 0.12f)
             )
 
             Row(
@@ -360,12 +351,12 @@ private fun NextAlarmPanel(nextAlarm: NextAlarmInfo) {
                 Text(
                     text = nextAlarm.relativeLabel,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = onContainer
                 )
                 Text(
                     text = nextAlarm.dismissType.displayLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = onContainer.copy(alpha = 0.65f)
                 )
             }
         }
@@ -410,18 +401,19 @@ private fun EmptyAlarmState(onCreateAlarmClick: () -> Unit) {
                 .fillMaxWidth()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            SunriseDial(
+                progress = 0.28f,
+                modifier = Modifier.size(70.dp),
+                accent = MaterialTheme.colorScheme.primary,
+                showTicks = false,
+                trackWidth = 4.dp
+            )
             Text(
                 text = "Belum ada alarm",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Buat alarm pertama, lalu pilih cara mematikannya.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
             )
             OutlinedButton(onClick = { haptic(); onCreateAlarmClick() }) {
                 Text(text = "Buat alarm")
@@ -438,7 +430,8 @@ private data class NextAlarmInfo(
     val triggerAtMillis: Long,
     val isSnooze: Boolean,
     val dayLabel: String,
-    val relativeLabel: String
+    val relativeLabel: String,
+    val progress: Float
 )
 
 private fun findNextAlarm(
@@ -460,7 +453,8 @@ private fun findNextAlarm(
                 triggerAtMillis = triggerAtMillis,
                 isSnooze = false,
                 dayLabel = dayLabel(triggerAtMillis, now),
-                relativeLabel = relativeLabel(triggerAtMillis, nowMillis)
+                relativeLabel = relativeLabel(triggerAtMillis, nowMillis),
+                progress = progressFor(triggerAtMillis, nowMillis)
             )
         }
 
@@ -475,7 +469,8 @@ private fun findNextAlarm(
                 triggerAtMillis = info.triggerAtMillis,
                 isSnooze = true,
                 dayLabel = dayLabel(info.triggerAtMillis, now),
-                relativeLabel = relativeLabel(info.triggerAtMillis, nowMillis)
+                relativeLabel = relativeLabel(info.triggerAtMillis, nowMillis),
+                progress = progressFor(info.triggerAtMillis, nowMillis)
             )
         }
 
@@ -516,6 +511,12 @@ private fun dayLabel(triggerAtMillis: Long, now: Calendar): String {
         1 -> "Besok"
         else -> SimpleDateFormat("EEEE", Locale("id", "ID")).format(trigger.time)
     }
+}
+
+internal fun progressFor(triggerAtMillis: Long, nowMillis: Long): Float {
+    val deltaMillis = (triggerAtMillis - nowMillis).coerceAtLeast(0L)
+    val remainingFraction = deltaMillis.toFloat() / DAY_MILLIS.toFloat()
+    return (1f - remainingFraction).coerceIn(0.02f, 1f)
 }
 
 internal fun relativeLabel(triggerAtMillis: Long, nowMillis: Long): String {

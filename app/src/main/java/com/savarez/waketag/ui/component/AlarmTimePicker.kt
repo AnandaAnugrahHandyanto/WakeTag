@@ -1,6 +1,8 @@
 package com.savarez.waketag.ui.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,21 +55,35 @@ fun AlarmTimePicker(
 ) {
     var activePicker by rememberSaveable { mutableStateOf<PickerType?>(null) }
     val haptic = rememberHapticFeedback()
+    val shape = MaterialTheme.shapes.extraLarge
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                    shape = shape
+                )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                    .padding(horizontal = 8.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TimeSection(
@@ -76,7 +95,7 @@ fun AlarmTimePicker(
                 Text(
                     text = ":",
                     style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                     modifier = Modifier.padding(horizontal = 2.dp)
                 )
                 TimeSection(
@@ -87,12 +106,6 @@ fun AlarmTimePicker(
                 )
             }
         }
-
-        Text(
-            text = "Ketuk jam atau menit untuk mengubah.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 
     activePicker?.let { pickerType ->
@@ -124,7 +137,7 @@ private fun TimeSection(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() }
-            .padding(vertical = 12.dp),
+            .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -137,6 +150,16 @@ private fun TimeSection(
             text = "%02d".format(value),
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onSurface
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .width(22.dp)
+                .height(2.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    shape = CircleShape
+                )
         )
     }
 }

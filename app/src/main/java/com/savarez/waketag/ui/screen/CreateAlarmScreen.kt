@@ -16,15 +16,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,10 +34,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.ui.component.AlarmTimePicker
-import com.savarez.waketag.ui.component.DismissTypeChip
+import com.savarez.waketag.ui.component.DismissTypeSelector
+import com.savarez.waketag.ui.component.WakeTagBackdrop
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
@@ -156,6 +155,7 @@ fun CreateAlarmContent(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+        WakeTagBackdrop {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val horizontalPadding = when {
                 maxWidth < 360.dp -> 16.dp
@@ -174,26 +174,17 @@ fun CreateAlarmContent(
                     .widthIn(max = maxContentWidth),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                TextButton(
-                    onClick = { haptic(); onBackClick() },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 0.dp,
-                        vertical = 4.dp
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "WAKE TAG",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.4.sp
                     )
-                ) {
-                    Text(text = "← Kembali")
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Atur waktu dan cara mematikan alarm.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -210,26 +201,16 @@ fun CreateAlarmContent(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Text(
-                        text = "Beri nama agar kamu tahu alarm ini untuk apa.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         LABEL_PRESETS.forEach { preset ->
                             val selected = label.equals(preset, ignoreCase = true)
-                            FilterChip(
+                            androidx.compose.material3.FilterChip(
                                 selected = selected,
                                 onClick = {
                                     haptic()
                                     onLabelChange(if (selected) "" else preset)
                                 },
                                 label = { Text(text = preset) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
                             )
                         }
                     }
@@ -254,13 +235,10 @@ fun CreateAlarmContent(
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
-                    DismissType.entries.forEach { type ->
-                        DismissTypeChip(
-                            dismissType = type,
-                            selected = dismissType == type,
-                            onClick = { onDismissTypeChange(type) }
-                        )
-                    }
+                    DismissTypeSelector(
+                        selected = dismissType,
+                        onSelect = onDismissTypeChange
+                    )
 
                     if (dismissType == DismissType.NFC) {
                         NfcStatusNote(registered = nfcTagRegistered)
@@ -292,11 +270,6 @@ fun CreateAlarmContent(
                                     text = "Alarm aktif",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Matikan sementara tanpa menghapus alarm.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Switch(
@@ -346,6 +319,7 @@ fun CreateAlarmContent(
                     }
                 }
             }
+        }
         }
     }
 }

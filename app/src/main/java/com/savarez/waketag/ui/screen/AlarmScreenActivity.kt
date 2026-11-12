@@ -58,6 +58,7 @@ import com.savarez.waketag.nfc.NfcManager
 import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.receiver.AlarmDismissReceiver
 import com.savarez.waketag.ui.component.AlarmLabelPill
+import com.savarez.waketag.ui.component.AlarmAura
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
@@ -274,14 +275,24 @@ fun AlarmScreenContent(
     val haptic = rememberHapticFeedback()
     val isNfcAlarm = dismissType == DismissType.NFC
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 36.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        AlarmAura(
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 52.dp)
+                .size(360.dp),
+            ringCount = 4
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -333,7 +344,7 @@ fun AlarmScreenContent(
                 )
             } else {
                 Text(
-                    text = "Tekan Matikan untuk menghentikan alarm.",
+                    text = "Tekan Matikan",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -387,17 +398,18 @@ fun AlarmScreenContent(
                     )
                 }
                 Text(
-                    text = "Gunakan hanya jika tag tidak bisa dipakai.",
+                    text = "Jalur darurat",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    text = "Alarm akan berbunyi lagi dalam 5 menit.",
+                    text = "Alarm aktif kembali 5 menit lagi",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
         }
     }
 
@@ -491,8 +503,7 @@ private fun NfcScanPanel(
             }
 
             Text(
-                text = message ?: "Tempelkan tag ke bagian belakang HP. " +
-                    "Alarm berhenti setelah tag yang terdaftar terbaca.",
+                text = message ?: "Tempelkan tag terdaftar",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

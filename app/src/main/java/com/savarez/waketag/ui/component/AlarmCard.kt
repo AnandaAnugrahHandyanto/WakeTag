@@ -1,11 +1,17 @@
 package com.savarez.waketag.ui.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -16,13 +22,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.theme.WakeTagTheme
-import com.savarez.waketag.util.dismissHint
 import com.savarez.waketag.util.displayLabel
 import com.savarez.waketag.util.rememberHapticFeedback
 
@@ -40,6 +48,12 @@ fun AlarmCard(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val accent = if (alarm.label.isNotBlank()) {
+        alarmLabelAccent(alarm.label)
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    val edgeColor = if (alarm.enabled) accent else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -48,77 +62,90 @@ fun AlarmCard(
         border = BorderStroke(
             width = 1.dp,
             color = if (alarm.enabled) {
-                MaterialTheme.colorScheme.outlineVariant
+                accent.copy(alpha = 0.32f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
             }
         )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (alarm.label.isNotBlank()) {
-                        AlarmLabelPill(label = alarm.label)
-                    }
-
-                    Text(
-                        text = "%02d:%02d".format(alarm.hour, alarm.minute),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = timeColor
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Pantulan warna label di sudut kanan atas.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 34.dp, y = (-42).dp)
+                    .size(136.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                edgeColor.copy(alpha = if (alarm.enabled) 0.16f else 0.06f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = CircleShape
                     )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        MethodPill(dismissType = alarm.dismissType)
-                        Text(
-                            text = if (alarm.enabled) "Aktif" else "Nonaktif",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Switch(
-                    checked = alarm.enabled,
-                    onCheckedChange = { enabled -> haptic(); onEnabledChange(enabled) }
-                )
-            }
-
-            Text(
-                text = alarm.dismissType.dismissHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                TextButton(onClick = { haptic(); onEditClick() }) {
-                    Text(text = "Ubah")
-                }
-                TextButton(onClick = { haptic(); onDeleteClick() }) {
-                    Text(
-                        text = "Hapus",
-                        color = MaterialTheme.colorScheme.error
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(50.dp)
+                            .clip(CircleShape)
+                            .background(edgeColor.copy(alpha = if (alarm.enabled) 0.85f else 0.35f))
                     )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (alarm.label.isNotBlank()) {
+                            AlarmLabelPill(label = alarm.label)
+                        }
+
+                        Text(
+                            text = "%02d:%02d".format(alarm.hour, alarm.minute),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = timeColor
+                        )
+
+                        MethodPill(dismissType = alarm.dismissType)
+                    }
+
+                    Switch(
+                        checked = alarm.enabled,
+                        onCheckedChange = { enabled -> haptic(); onEnabledChange(enabled) }
+                    )
+                }
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { haptic(); onEditClick() }) {
+                        Text(text = "Ubah")
+                    }
+                    TextButton(onClick = { haptic(); onDeleteClick() }) {
+                        Text(
+                            text = "Hapus",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
