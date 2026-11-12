@@ -63,7 +63,7 @@ fun CreateAlarmScreen(
     initialDismissType: DismissType = DismissType.NORMAL,
     initialEnabled: Boolean = true,
     initialLabel: String = "",
-    initialDaysOfWeek: Int = 127,
+    initialDaysOfWeek: Int = 0,
     showEnabledToggle: Boolean = false,
     onBackClick: () -> Unit = {},
     onSaveAlarm: (
@@ -117,6 +117,8 @@ fun CreateAlarmScreen(
                     CREATE_ALARM_LOG_TAG,
                     "Invalid alarm time selected: %02d:%02d".format(selectedHour, selectedMinute)
                 )
+            } else if (selectedDaysOfWeek == 0) {
+                saveError = "Pilih setidaknya satu hari aktif."
             } else if (selectedDismissType == DismissType.NFC && !nfcTagRegistered) {
                 saveError = "Daftarkan tag NFC dulu di halaman utama."
             } else {
@@ -414,6 +416,7 @@ private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
 
 private fun activeDaysLabel(days: Int): String = when (days) {
     127 -> "Setiap hari"
+    0 -> "Belum dipilih"
     else -> ACTIVE_DAY_LABELS.filterIndexed { index, _ -> days and (1 shl index) != 0 }.joinToString(", ")
 }
 

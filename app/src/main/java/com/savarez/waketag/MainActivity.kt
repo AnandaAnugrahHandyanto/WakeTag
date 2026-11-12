@@ -210,7 +210,7 @@ private fun WakeTagApp() {
                 initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
                 initialEnabled = editingAlarm?.enabled ?: true,
                 initialLabel = editingAlarm?.label.orEmpty(),
-                initialDaysOfWeek = editingAlarm?.daysOfWeek ?: 127,
+                initialDaysOfWeek = editingAlarm?.daysOfWeek ?: 0,
                 showEnabledToggle = editingAlarm != null,
                 onBackClick = {
                     editingAlarmId = null

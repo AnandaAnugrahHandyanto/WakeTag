@@ -19,7 +19,7 @@ class AlarmRepository(
         minute: Int,
         dismissType: DismissType,
         label: String = "",
-        daysOfWeek: Int = 127
+        daysOfWeek: Int = 0
     ): Alarm {
         val id = alarmDao.insert(
             AlarmEntity(

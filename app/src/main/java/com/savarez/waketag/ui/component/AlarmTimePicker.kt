@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -39,13 +39,7 @@ import androidx.compose.ui.window.Dialog
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
-/**
- * Pemilih jam dan menit.
- *
- * Angka jam dan menit ditampilkan besar seperti jam digital, lalu
- * bagian yang dipilih ditampilkan sebagai daftar angka yang bisa
- * di-scroll untuk dilihat dan dipilih.
- */
+/** Premium compact time display with a dual hour/minute picker dialog. */
 @Composable
 fun AlarmTimePicker(
     hour: Int,
@@ -54,77 +48,206 @@ fun AlarmTimePicker(
     onMinuteChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var activePicker by rememberSaveable { mutableStateOf<PickerType?>(null) }
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val haptic = rememberHapticFeedback()
     val shape = MaterialTheme.shapes.extraLarge
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.62f),
                             MaterialTheme.colorScheme.surface,
                             MaterialTheme.colorScheme.surface
                         )
                     )
                 )
                 .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                    shape = shape
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                    shape
                 )
+                .clickable { haptic(); pickerOpen = true }
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TimeSection(
-                    label = "JAM",
-                    value = hour,
-                    onClick = { haptic(); activePicker = PickerType.HOUR },
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = ":",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(horizontal = 2.dp)
-                )
-                TimeSection(
-                    label = "MENIT",
-                    value = minute,
-                    onClick = { haptic(); activePicker = PickerType.MINUTE },
-                    modifier = Modifier.weight(1f)
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = "WAKTU ALARM",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.8.sp
+                    )
+                    Text(
+                        text = "%02d:%02d".format(hour, minute),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "Ubah",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    if (pickerOpen) {
+        Dialog(onDismissRequest = { pickerOpen = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(30.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 10.dp
+            ) {
+                DualTimePicker(
+                    hour = hour,
+                    minute = minute,
+                    onHourChange = onHourChange,
+                    onMinuteChange = onMinuteChange,
+                    onDone = { haptic(); pickerOpen = false }
                 )
             }
         }
+    }
+}
 
-        activePicker?.let { pickerType ->
-            Dialog(onDismissRequest = { activePicker = null }) {
-                Surface(
+@Composable
+private fun DualTimePicker(
+    hour: Int,
+    minute: Int,
+    onHourChange: (Int) -> Unit,
+    onMinuteChange: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(
+        modifier = Modifier.padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("Atur waktu", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Geser angka atau ketuk pilihan yang kamu mau",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CompactWheel(
+                label = "JAM",
+                value = hour,
+                range = 0..23,
+                onValueChange = onHourChange,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = ":",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+            CompactWheel(
+                label = "MENIT",
+                value = minute,
+                range = 0..59,
+                onValueChange = onMinuteChange,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onDone) { Text("Selesai") }
+        }
+    }
+}
+
+@Composable
+private fun CompactWheel(
+    label: String,
+    value: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = rememberHapticFeedback()
+    var dragDistance by remember { mutableFloatStateOf(0f) }
+    val dragState = rememberDraggableState { delta ->
+        dragDistance += delta
+        while (dragDistance <= -34f && value < range.last) {
+            dragDistance += 34f
+            onValueChange(value + 1)
+            haptic()
+        }
+        while (dragDistance >= 34f && value > range.first) {
+            dragDistance -= 34f
+            onValueChange(value - 1)
+            haptic()
+        }
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(7.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 1.5.sp
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(178.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
+                .draggable(dragState, Orientation.Vertical)
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ((value - 2).coerceAtLeast(range.first)..(value + 2).coerceAtMost(range.last)).forEach { option ->
+                val selected = option == value
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
+                        )
+                        .clickable { haptic(); onValueChange(option) },
+                    contentAlignment = Alignment.Center
                 ) {
-                    ScrollingNumberPicker(
-                        title = "Pilih ${pickerType.label.lowercase()}",
-                        value = if (pickerType == PickerType.HOUR) hour else minute,
-                        range = pickerType.range,
-                        onValueChange = if (pickerType == PickerType.HOUR) onHourChange else onMinuteChange,
-                        onDismiss = { activePicker = null },
-                        modifier = Modifier.padding(20.dp)
+                    Text(
+                        text = "%02d".format(option),
+                        style = if (selected) MaterialTheme.typography.titleMedium
+                        else MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -132,186 +255,10 @@ fun AlarmTimePicker(
     }
 }
 
-@Composable
-private fun TimeSection(
-    label: String,
-    value: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 1.6.sp
-        )
-        Text(
-            text = "%02d".format(value),
-            style = MaterialTheme.typography.displayMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Box(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .width(22.dp)
-                .height(2.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                    shape = CircleShape
-                )
-        )
-    }
-}
-
-@Composable
-private fun ScrollingNumberPicker(
-    title: String,
-    value: Int,
-    range: IntRange,
-    onValueChange: (Int) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = rememberHapticFeedback()
-    var dragDistance by remember { mutableFloatStateOf(0f) }
-    val dragState = rememberDraggableState { delta ->
-        dragDistance += delta
-        while (dragDistance <= -40f && value < range.last) {
-            dragDistance += 40f
-            onValueChange(value + 1)
-            haptic()
-        }
-        while (dragDistance >= 40f && value > range.first) {
-            dragDistance -= 40f
-            onValueChange(value - 1)
-            haptic()
-        }
-    }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Geser",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(onClick = { haptic(); onDismiss() }) { Text(text = "Selesai") }
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(232.dp)
-                .draggable(dragState, Orientation.Vertical),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            ((value - 2).coerceAtLeast(range.first)..(value + 2).coerceAtMost(range.last)).forEach { option ->
-                NumberOption(
-                    value = option,
-                    isSelected = option == value,
-                    onClick = { haptic(); onValueChange(option) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NumberOption(
-    value: Int,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = rememberHapticFeedback()
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(42.dp)
-            .clip(RoundedCornerShape(13.dp))
-            .background(
-                brush = if (isSelected) {
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
-                            MaterialTheme.colorScheme.primary
-                        )
-                    )
-                } else {
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    )
-                },
-                shape = RoundedCornerShape(13.dp)
-            )
-            .clickable { haptic(); onClick() }
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "%02d".format(value),
-            style = if (isSelected) {
-                MaterialTheme.typography.titleLarge
-            } else {
-                MaterialTheme.typography.bodyLarge
-            },
-            fontWeight = if (isSelected) {
-                FontWeight.Bold
-            } else {
-                FontWeight.Medium
-            },
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
-    }
-}
-
-private enum class PickerType(
-    val label: String,
-    val range: IntRange
-) {
-    HOUR("Jam", 0..23),
-    MINUTE("Menit", 0..59)
-}
-
 @Preview(showBackground = true)
 @Composable
 private fun AlarmTimePickerPreview() {
     WakeTagTheme {
-        AlarmTimePicker(
-            hour = 7,
-            minute = 30,
-            onHourChange = {},
-            onMinuteChange = {}
-        )
+        AlarmTimePicker(hour = 7, minute = 30, onHourChange = {}, onMinuteChange = {})
     }
 }
