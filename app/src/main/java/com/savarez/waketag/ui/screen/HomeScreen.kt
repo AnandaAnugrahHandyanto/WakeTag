@@ -27,12 +27,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +90,7 @@ fun HomeScreen(
 
     val listState = rememberLazyListState()
     val showCreateButton = alarms.isNotEmpty()
+    var alarmPendingDelete by remember { mutableStateOf<Alarm?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -178,12 +181,42 @@ fun HomeScreen(
                                 onAlarmEnabledChange(alarm.id, enabled)
                             },
                             onEditClick = { onEditAlarmClick(alarm.id) },
-                            onDeleteClick = { onDeleteAlarmClick(alarm.id) }
+                            onDeleteClick = { alarmPendingDelete = alarm }
                         )
                     }
                 }
             }
         }
+    }
+
+    alarmPendingDelete?.let { alarm ->
+        AlertDialog(
+            onDismissRequest = { alarmPendingDelete = null },
+            title = { Text("Hapus alarm?") },
+            text = {
+                Text(
+                    "Alarm %02d:%02d akan dihapus permanen.%s".format(
+                        alarm.hour,
+                        alarm.minute,
+                        if (alarm.label.isBlank()) "" else "\n${alarm.label}"
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        haptic()
+                        onDeleteAlarmClick(alarm.id)
+                        alarmPendingDelete = null
+                    }
+                ) {
+                    Text("Hapus", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { alarmPendingDelete = null }) { Text("Batal") }
+            }
+        )
     }
 }
 

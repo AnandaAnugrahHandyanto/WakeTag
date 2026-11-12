@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
@@ -107,13 +109,25 @@ fun AlarmTimePicker(
         }
 
         activePicker?.let { pickerType ->
-            ScrollingNumberPicker(
-                title = pickerType.label,
-                value = if (pickerType == PickerType.HOUR) hour else minute,
-                range = pickerType.range,
-                onValueChange = if (pickerType == PickerType.HOUR) onHourChange else onMinuteChange,
-                onDismiss = { activePicker = null }
-            )
+            Dialog(onDismissRequest = { activePicker = null }) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    ScrollingNumberPicker(
+                        title = "Pilih ${pickerType.label.lowercase()}",
+                        value = if (pickerType == PickerType.HOUR) hour else minute,
+                        range = pickerType.range,
+                        onValueChange = if (pickerType == PickerType.HOUR) onHourChange else onMinuteChange,
+                        onDismiss = { activePicker = null },
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+            }
         }
     }
 }

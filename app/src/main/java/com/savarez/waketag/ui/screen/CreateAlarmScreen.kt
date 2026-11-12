@@ -345,20 +345,26 @@ private val ACTIVE_DAY_LABELS = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab",
 @Composable
 private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
     val haptic = rememberHapticFeedback()
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { haptic(); expanded = !expanded }
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Aktif pada", style = MaterialTheme.typography.titleMedium)
             Text(
-                text = activeDaysLabel(daysOfWeek),
+                text = if (expanded) "Tutup" else "Pilih hari",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        if (expanded) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             ACTIVE_DAY_LABELS.forEachIndexed { index, label ->
                 val bit = 1 shl index
                 val selected = daysOfWeek and bit != 0
@@ -396,6 +402,12 @@ private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
                     )
                 }
             }
+            }
+            Text(
+                text = activeDaysLabel(daysOfWeek),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
