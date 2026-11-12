@@ -120,6 +120,11 @@ fun AlarmCard(
                         )
 
                         MethodPill(dismissType = alarm.dismissType)
+                        Text(
+                            text = activeDaysLabel(alarm.daysOfWeek),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     Switch(
@@ -150,6 +155,12 @@ fun AlarmCard(
             }
         }
     }
+}
+
+private val CARD_DAY_LABELS = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+private fun activeDaysLabel(days: Int): String = when (days) {
+    127 -> "Setiap hari"
+    else -> CARD_DAY_LABELS.filterIndexed { index, _ -> days and (1 shl index) != 0 }.joinToString(" · ")
 }
 
 @Composable

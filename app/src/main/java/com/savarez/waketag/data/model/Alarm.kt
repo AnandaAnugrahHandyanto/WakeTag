@@ -6,5 +6,6 @@ data class Alarm(
     val minute: Int,
     val enabled: Boolean,
     val dismissType: DismissType,
-    val label: String = ""
+    val label: String = "",
+    val daysOfWeek: Int = 127
 )

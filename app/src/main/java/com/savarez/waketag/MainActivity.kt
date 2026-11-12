@@ -210,12 +210,13 @@ private fun WakeTagApp() {
                 initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
                 initialEnabled = editingAlarm?.enabled ?: true,
                 initialLabel = editingAlarm?.label.orEmpty(),
+                initialDaysOfWeek = editingAlarm?.daysOfWeek ?: 127,
                 showEnabledToggle = editingAlarm != null,
                 onBackClick = {
                     editingAlarmId = null
                     currentScreen = WakeTagScreen.HOME.name
                 },
-                onSaveAlarm = { hour, minute, dismissType, enabled, label ->
+                onSaveAlarm = { hour, minute, dismissType, enabled, label, daysOfWeek ->
                     if (!alarmManager.isValidTime(hour, minute)) {
                         Log.e(
                             WAKE_TAG_APP_LOG_TAG,
@@ -225,7 +226,7 @@ private fun WakeTagApp() {
                     }
                     coroutineScope.launch {
                         val alarmId = if (editingAlarmId == null) {
-                            val createdAlarm = alarmRepository.addAlarm(hour, minute, dismissType, label)
+                            val createdAlarm = alarmRepository.addAlarm(hour, minute, dismissType, label, daysOfWeek)
                             createdAlarm.id
                         } else {
                             val existingId = editingAlarmId ?: return@launch
@@ -236,7 +237,8 @@ private fun WakeTagApp() {
                                 minute = minute,
                                 dismissType = dismissType,
                                 enabled = enabled,
-                                label = label
+                                label = label,
+                                daysOfWeek = daysOfWeek
                             )
                             updatedAlarm?.id ?: existingId
                         }

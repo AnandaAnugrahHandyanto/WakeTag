@@ -1,9 +1,11 @@
 package com.savarez.waketag.ui.component
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,17 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.savarez.waketag.ui.theme.WakeTagTheme
@@ -167,17 +167,19 @@ private fun ScrollingNumberPicker(
     modifier: Modifier = Modifier
 ) {
     val haptic = rememberHapticFeedback()
-    val scrollState = rememberScrollState()
-    val itemHeightPx = with(LocalDensity.current) { 64.dp.toPx() }
-    val itemStridePx = with(LocalDensity.current) { 72.dp.toPx() }
-
-    LaunchedEffect(value) {
-        val selectedIndex = (value - range.first).coerceIn(0, range.count() - 1)
-        val targetOffset = (selectedIndex * itemStridePx).coerceIn(0f, scrollState.maxValue.toFloat())
-        scrollState.animateScrollTo(
-            targetOffset.toInt(),
-            tween(durationMillis = 350)
-        )
+    var dragDistance by remember { mutableFloatStateOf(0f) }
+    val dragState = rememberDraggableState { delta ->
+        dragDistance += delta
+        while (dragDistance <= -40f && value < range.last) {
+            dragDistance += 40f
+            onValueChange(value + 1)
+            haptic()
+        }
+        while (dragDistance >= 40f && value > range.first) {
+            dragDistance -= 40f
+            onValueChange(value - 1)
+            haptic()
+        }
     }
 
     Column(
@@ -202,11 +204,11 @@ private fun ScrollingNumberPicker(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .heightIn(max = 320.dp),
+                .height(320.dp)
+                .draggable(dragState, Orientation.Vertical),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            range.toList().forEach { option ->
+            ((value - 2).coerceAtLeast(range.first)..(value + 2).coerceAtMost(range.last)).forEach { option ->
                 NumberOption(
                     value = option,
                     isSelected = option == value,

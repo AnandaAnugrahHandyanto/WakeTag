@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [AlarmEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class WakeTagDatabase : RoomDatabase() {
@@ -31,6 +31,12 @@ abstract class WakeTagDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE alarms ADD COLUMN daysOfWeek INTEGER NOT NULL DEFAULT 127")
+            }
+        }
+
         fun getInstance(context: Context): WakeTagDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -38,7 +44,7 @@ abstract class WakeTagDatabase : RoomDatabase() {
                     WakeTagDatabase::class.java,
                     "waketag.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

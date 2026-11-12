@@ -56,7 +56,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 minute = payload.minute,
                 enabled = true,
                 dismissType = payload.dismissType,
-                label = payload.label
+                label = payload.label,
+                daysOfWeek = payload.daysOfWeek
             )
         )
         if (!scheduled) {

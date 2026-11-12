@@ -29,7 +29,7 @@ class WakeTagAlarmManager(
         }
 
         val now = Calendar.getInstance()
-        val triggerTime = calculateNextTriggerTime(alarm.hour, alarm.minute)
+        val triggerTime = calculateNextTriggerTime(alarm.hour, alarm.minute, alarm.daysOfWeek)
         val requestCode = createRequestCode(alarm.id)
         val pendingIntent = createSchedulePendingIntent(
             alarmId = alarm.id,
@@ -37,6 +37,7 @@ class WakeTagAlarmManager(
             minute = alarm.minute,
             dismissType = alarm.dismissType,
             label = alarm.label,
+            daysOfWeek = alarm.daysOfWeek,
             isSnooze = false,
             scheduledAtMillis = triggerTime
         )
@@ -68,6 +69,7 @@ class WakeTagAlarmManager(
         minute: Int,
         dismissType: DismissType,
         label: String = "",
+        daysOfWeek: Int = 127,
         delayMillis: Long = SNOOZE_DELAY_MILLIS
     ): Boolean {
         if (!isValidTime(hour, minute)) {
@@ -86,6 +88,7 @@ class WakeTagAlarmManager(
                 minute = minute,
                 dismissType = dismissType,
                 label = label,
+                daysOfWeek = daysOfWeek,
                 isSnooze = true,
                 scheduledAtMillis = triggerTime
             ),
@@ -208,7 +211,7 @@ class WakeTagAlarmManager(
         }
     }
 
-    fun calculateNextTriggerTime(hour: Int, minute: Int, now: Calendar = Calendar.getInstance()): Long {
+    fun calculateNextTriggerTime(hour: Int, minute: Int, daysOfWeek: Int = 127, now: Calendar = Calendar.getInstance()): Long {
         return Calendar.getInstance().apply {
             timeInMillis = now.timeInMillis
             set(Calendar.HOUR_OF_DAY, hour)
@@ -216,7 +219,7 @@ class WakeTagAlarmManager(
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
 
-            if (timeInMillis <= now.timeInMillis) {
+            while (timeInMillis <= now.timeInMillis || !isDayEnabled(get(Calendar.DAY_OF_WEEK), daysOfWeek)) {
                 add(Calendar.DAY_OF_YEAR, 1)
             }
         }.timeInMillis
@@ -228,6 +231,7 @@ class WakeTagAlarmManager(
         minute: Int,
         dismissType: DismissType,
         label: String,
+        daysOfWeek: Int = 127,
         isSnooze: Boolean,
         scheduledAtMillis: Long
     ): PendingIntent {
@@ -237,6 +241,7 @@ class WakeTagAlarmManager(
             minute = minute,
             dismissType = dismissType,
             label = label,
+            daysOfWeek = daysOfWeek,
             isSnooze = isSnooze,
             scheduledAtMillis = scheduledAtMillis
         ).let { intent ->
@@ -294,6 +299,7 @@ class WakeTagAlarmManager(
         minute: Int,
         dismissType: DismissType,
         label: String,
+        daysOfWeek: Int = 127,
         isSnooze: Boolean,
         scheduledAtMillis: Long
     ): Intent {
@@ -305,6 +311,7 @@ class WakeTagAlarmManager(
             .putExtra(EXTRA_ALARM_MINUTE, minute)
             .putExtra(EXTRA_DISMISS_TYPE, dismissType.name)
             .putExtra(EXTRA_ALARM_LABEL, label)
+            .putExtra(EXTRA_DAYS_OF_WEEK, daysOfWeek)
             .putExtra(EXTRA_IS_SNOOZE, isSnooze)
             .putExtra(EXTRA_SCHEDULED_AT_MILLIS, scheduledAtMillis)
     }
@@ -327,5 +334,11 @@ class WakeTagAlarmManager(
         const val EXTRA_ALARM_LABEL = "extra_alarm_label"
         const val EXTRA_IS_SNOOZE = "extra_is_snooze"
         const val EXTRA_SCHEDULED_AT_MILLIS = "extra_scheduled_at_millis"
+        const val EXTRA_DAYS_OF_WEEK = "extra_days_of_week"
+
+        private fun isDayEnabled(calendarDay: Int, daysOfWeek: Int): Boolean {
+            val mondayBasedIndex = (calendarDay + 5) % 7
+            return daysOfWeek and (1 shl mondayBasedIndex) != 0
+        }
     }
 }

@@ -18,7 +18,8 @@ class AlarmRepository(
         hour: Int,
         minute: Int,
         dismissType: DismissType,
-        label: String = ""
+        label: String = "",
+        daysOfWeek: Int = 127
     ): Alarm {
         val id = alarmDao.insert(
             AlarmEntity(
@@ -26,7 +27,8 @@ class AlarmRepository(
                 minute = minute,
                 enabled = true,
                 dismissType = dismissType.name,
-                label = label.trim()
+                label = label.trim(),
+                daysOfWeek = daysOfWeek
             )
         )
         return requireNotNull(getAlarmById(id))
@@ -53,7 +55,8 @@ class AlarmRepository(
         minute: Int,
         dismissType: DismissType,
         enabled: Boolean,
-        label: String
+        label: String,
+        daysOfWeek: Int
     ): Alarm? {
         val currentAlarm = alarmDao.getById(alarmId) ?: return null
         val updatedAlarm = currentAlarm.copy(
@@ -61,7 +64,8 @@ class AlarmRepository(
             minute = minute,
             dismissType = dismissType.name,
             enabled = enabled,
-            label = label.trim()
+            label = label.trim(),
+            daysOfWeek = daysOfWeek
         )
         alarmDao.update(updatedAlarm)
         return updatedAlarm.toModel()
@@ -78,7 +82,8 @@ class AlarmRepository(
             minute = minute,
             enabled = enabled,
             dismissType = DismissType.entries.firstOrNull { it.name == dismissType } ?: DismissType.NORMAL,
-            label = label
+            label = label,
+            daysOfWeek = daysOfWeek
         )
     }
 }

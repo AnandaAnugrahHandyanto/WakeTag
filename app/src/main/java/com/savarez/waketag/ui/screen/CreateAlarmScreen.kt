@@ -57,6 +57,7 @@ fun CreateAlarmScreen(
     initialDismissType: DismissType = DismissType.NORMAL,
     initialEnabled: Boolean = true,
     initialLabel: String = "",
+    initialDaysOfWeek: Int = 127,
     showEnabledToggle: Boolean = false,
     onBackClick: () -> Unit = {},
     onSaveAlarm: (
@@ -64,12 +65,13 @@ fun CreateAlarmScreen(
         minute: Int,
         dismissType: DismissType,
         enabled: Boolean,
-        label: String
-    ) -> Unit = { hour, minute, dismissType, enabled, label ->
+        label: String,
+        daysOfWeek: Int
+    ) -> Unit = { hour, minute, dismissType, enabled, label, daysOfWeek ->
         Log.d(
             CREATE_ALARM_LOG_TAG,
-            "Save alarm tapped: %02d:%02d, dismissType=%s, enabled=%s, label=%s"
-                .format(hour, minute, dismissType.name, enabled, label.ifBlank { "-" })
+            "Save alarm tapped: %02d:%02d, dismissType=%s, enabled=%s, days=%d, label=%s"
+                .format(hour, minute, dismissType.name, enabled, daysOfWeek, label.ifBlank { "-" })
         )
     }
 ) {
@@ -78,6 +80,7 @@ fun CreateAlarmScreen(
     var selectedDismissType by rememberSaveable(initialDismissType) { mutableStateOf(initialDismissType) }
     var selectedEnabled by rememberSaveable(initialEnabled) { mutableStateOf(initialEnabled) }
     var selectedLabel by rememberSaveable(initialLabel) { mutableStateOf(initialLabel) }
+    var selectedDaysOfWeek by rememberSaveable(initialDaysOfWeek) { mutableIntStateOf(initialDaysOfWeek) }
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val nfcTagRegistered = NfcTagStore.getTagId(context) != null
@@ -90,6 +93,7 @@ fun CreateAlarmScreen(
         dismissType = selectedDismissType,
         enabled = selectedEnabled,
         label = selectedLabel,
+        daysOfWeek = selectedDaysOfWeek,
         showEnabledToggle = showEnabledToggle,
         nfcTagRegistered = nfcTagRegistered,
         onHourChange = { selectedHour = it },
@@ -97,6 +101,7 @@ fun CreateAlarmScreen(
         onDismissTypeChange = { selectedDismissType = it },
         onEnabledChange = { selectedEnabled = it },
         onLabelChange = { selectedLabel = it },
+        onDaysChange = { selectedDaysOfWeek = it },
         onBackClick = onBackClick,
         onSaveClick = {
             saveError = null
@@ -114,8 +119,9 @@ fun CreateAlarmScreen(
                         selectedHour,
                         selectedMinute,
                         selectedDismissType,
-                        selectedEnabled,
-                        selectedLabel.trim()
+                            selectedEnabled,
+                            selectedLabel.trim(),
+                            selectedDaysOfWeek
                     )
                 }.onFailure { throwable ->
                     saveError = "Gagal menyimpan alarm. Coba lagi."
@@ -137,6 +143,7 @@ fun CreateAlarmContent(
     dismissType: DismissType,
     enabled: Boolean,
     label: String,
+    daysOfWeek: Int = 127,
     showEnabledToggle: Boolean,
     nfcTagRegistered: Boolean,
     onHourChange: (Int) -> Unit,
@@ -144,6 +151,7 @@ fun CreateAlarmContent(
     onDismissTypeChange: (DismissType) -> Unit,
     onEnabledChange: (Boolean) -> Unit,
     onLabelChange: (String) -> Unit,
+    onDaysChange: (Int) -> Unit = {},
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
     errorMessage: String? = null,
@@ -227,6 +235,8 @@ fun CreateAlarmContent(
                         shape = RoundedCornerShape(16.dp)
                     )
                 }
+
+                ActiveDaysSelector(daysOfWeek = daysOfWeek, onDaysChange = onDaysChange)
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -322,6 +332,42 @@ fun CreateAlarmContent(
         }
         }
     }
+}
+
+private val ACTIVE_DAY_LABELS = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+
+@Composable
+private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
+    val haptic = rememberHapticFeedback()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Aktif pada", style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            ACTIVE_DAY_LABELS.forEachIndexed { index, label ->
+                val bit = 1 shl index
+                val selected = daysOfWeek and bit != 0
+                androidx.compose.material3.FilterChip(
+                    selected = selected,
+                    onClick = {
+                        haptic()
+                        val next = if (selected) daysOfWeek and bit.inv() else daysOfWeek or bit
+                        if (next != 0) onDaysChange(next)
+                    },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        Text(
+            text = activeDaysLabel(daysOfWeek),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private fun activeDaysLabel(days: Int): String = when (days) {
+    127 -> "Setiap hari"
+    else -> ACTIVE_DAY_LABELS.filterIndexed { index, _ -> days and (1 shl index) != 0 }.joinToString(", ")
 }
 
 @Composable

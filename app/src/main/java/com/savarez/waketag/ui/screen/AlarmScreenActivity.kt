@@ -69,6 +69,7 @@ class AlarmScreenActivity : ComponentActivity() {
     private var alarmHour: Int = 0
     private var alarmMinute: Int = 0
     private var alarmLabel: String = ""
+    private var alarmDaysOfWeek: Int = 127
     private var dismissType: DismissType = DismissType.NORMAL
     private var isNfcAlarm: Boolean = false
 
@@ -105,6 +106,7 @@ class AlarmScreenActivity : ComponentActivity() {
             ?: DismissType.NORMAL
         alarmId = intent.getLongExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, -1L)
         alarmLabel = intent.getStringExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL).orEmpty()
+        alarmDaysOfWeek = intent.getIntExtra(WakeTagAlarmManager.EXTRA_DAYS_OF_WEEK, 127)
         isNfcAlarm = dismissType == DismissType.NFC
         nfcEnabled.value = nfcManager.isEnabled
 
@@ -204,7 +206,8 @@ class AlarmScreenActivity : ComponentActivity() {
             hour = alarmHour,
             minute = alarmMinute,
             dismissType = dismissType,
-            label = alarmLabel
+            label = alarmLabel,
+            daysOfWeek = alarmDaysOfWeek
         )
         if (!scheduled) {
             Toast.makeText(
@@ -238,7 +241,8 @@ class AlarmScreenActivity : ComponentActivity() {
             hour: Int,
             minute: Int,
             dismissType: String,
-            label: String = ""
+            label: String = "",
+            daysOfWeek: Int = 127
         ): Intent {
             return Intent(context, AlarmScreenActivity::class.java)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, alarmId)
@@ -246,6 +250,7 @@ class AlarmScreenActivity : ComponentActivity() {
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, minute)
                 .putExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE, dismissType)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL, label)
+                .putExtra(WakeTagAlarmManager.EXTRA_DAYS_OF_WEEK, daysOfWeek)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TASK or

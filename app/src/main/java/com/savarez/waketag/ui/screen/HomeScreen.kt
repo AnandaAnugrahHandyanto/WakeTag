@@ -1,5 +1,11 @@
 package com.savarez.waketag.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -30,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,27 +86,37 @@ fun HomeScreen(
         alarms.any { it.enabled } || snooze != null
     }
 
+    val listState = rememberLazyListState()
+    val showCreateButton = alarms.isNotEmpty()
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { haptic(); onCreateAlarmClick() },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                icon = {
-                    Text(
-                        text = "+",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Alarm baru",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            )
+            AnimatedVisibility(
+                visible = showCreateButton && listState.firstVisibleItemIndex == 0 &&
+                    listState.firstVisibleItemScrollOffset == 0,
+                enter = fadeIn(tween(300)) + scaleIn(tween(300)),
+                exit = fadeOut(tween(220)) + scaleOut(tween(220))
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { haptic(); onCreateAlarmClick() },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    icon = {
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Alarm baru",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                )
+            }
         }
     ) { innerPadding ->
         BoxWithConstraints(
@@ -117,6 +135,7 @@ fun HomeScreen(
             WakeTagBackdrop()
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(contentWidth)
@@ -484,10 +503,15 @@ private fun nextTrigger(alarm: Alarm, now: Calendar): Calendar {
         set(Calendar.MINUTE, alarm.minute)
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
-        if (timeInMillis <= now.timeInMillis) {
+        while (timeInMillis <= now.timeInMillis || !isDayEnabled(get(Calendar.DAY_OF_WEEK), alarm.daysOfWeek)) {
             add(Calendar.DAY_OF_YEAR, 1)
         }
     }
+}
+
+private fun isDayEnabled(calendarDay: Int, daysOfWeek: Int): Boolean {
+    val mondayBasedIndex = (calendarDay + 5) % 7
+    return daysOfWeek and (1 shl mondayBasedIndex) != 0
 }
 
 private fun dayLabel(triggerAtMillis: Long, now: Calendar): String {

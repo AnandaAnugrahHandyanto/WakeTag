@@ -13,5 +13,7 @@ data class AlarmEntity(
     val enabled: Boolean,
     val dismissType: String,
     @ColumnInfo(defaultValue = "''")
-    val label: String = ""
+    val label: String = "",
+    @ColumnInfo(defaultValue = "127")
+    val daysOfWeek: Int = 127
 )

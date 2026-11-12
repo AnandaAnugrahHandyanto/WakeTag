@@ -64,7 +64,8 @@ class AlarmPlaybackService : Service() {
             hour = payload.hour,
             minute = payload.minute,
             dismissType = payload.dismissType.name,
-            label = payload.label
+            label = payload.label,
+            daysOfWeek = payload.daysOfWeek
         )
         val fullscreenPendingIntent = PendingIntent.getActivity(
             this,
@@ -104,7 +105,8 @@ class AlarmPlaybackService : Service() {
             hour = payload.hour,
             minute = payload.minute,
             dismissType = payload.dismissType.name,
-            label = payload.label
+            label = payload.label,
+            daysOfWeek = payload.daysOfWeek
         )
         runCatching {
             startActivity(intent)
