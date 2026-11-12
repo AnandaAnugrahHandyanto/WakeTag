@@ -1,12 +1,14 @@
 package com.savarez.waketag
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +32,7 @@ import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
 import com.savarez.waketag.ui.screen.HomeScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -75,6 +78,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WakeTagApp() {
     val context = LocalContext.current.applicationContext
+    val activity = LocalContext.current as? Activity
+    val haptic = rememberHapticFeedback()
     val alarmRepository = remember { AlarmRepositoryProvider.get(context) }
     val alarmManager = remember { WakeTagAlarmManager(context) }
     val alarms by alarmRepository.alarms.collectAsState(initial = emptyList())
@@ -82,6 +87,7 @@ private fun WakeTagApp() {
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
     var editingAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exactAlarmPromptShown by rememberSaveable { mutableStateOf(false) }
+    var lastBackPressAt by rememberSaveable { mutableStateOf(0L) }
     var createHour by rememberSaveable {
         mutableIntStateOf(Calendar.getInstance().get(Calendar.HOUR_OF_DAY))
     }
@@ -89,6 +95,28 @@ private fun WakeTagApp() {
         mutableIntStateOf(Calendar.getInstance().get(Calendar.MINUTE))
     }
     val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
+
+    BackHandler(enabled = resolvedScreen == WakeTagScreen.EDIT_ALARM) {
+        haptic()
+        editingAlarmId = null
+        currentScreen = WakeTagScreen.HOME.name
+    }
+
+    BackHandler(enabled = resolvedScreen == WakeTagScreen.HOME) {
+        val now = System.currentTimeMillis()
+        if (now - lastBackPressAt <= 2000L) {
+            haptic()
+            activity?.finish()
+        } else {
+            lastBackPressAt = now
+            haptic()
+            Toast.makeText(
+                context,
+                "Tekan kembali sekali lagi untuk keluar",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     suspend fun syncAlarmSchedule(alarmId: Long, enabled: Boolean) {
         if (enabled) {

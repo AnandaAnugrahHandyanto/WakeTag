@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.displayLabel
+import com.savarez.waketag.util.rememberHapticFeedback
 
 @Composable
 fun DismissTypeChip(
@@ -17,9 +18,11 @@ fun DismissTypeChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = rememberHapticFeedback()
+
     FilterChip(
         selected = selected,
-        onClick = onClick,
+        onClick = { haptic(); onClick() },
         label = { Text(text = dismissType.displayLabel) },
         modifier = modifier,
         border = FilterChipDefaults.filterChipBorder(enabled = true, selected = selected)

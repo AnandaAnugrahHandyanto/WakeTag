@@ -22,6 +22,7 @@ import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.dismissHint
 import com.savarez.waketag.util.displayLabel
+import com.savarez.waketag.util.rememberHapticFeedback
 
 @Composable
 fun AlarmCard(
@@ -31,6 +32,8 @@ fun AlarmCard(
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = rememberHapticFeedback()
+
     ElevatedCard(modifier = modifier.fillMaxWidth()) {
         BoxWithConstraints(
             modifier = Modifier
@@ -57,12 +60,12 @@ fun AlarmCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(
                                 checked = alarm.enabled,
-                                onCheckedChange = onEnabledChange
+                                onCheckedChange = { enabled -> haptic(); onEnabledChange(enabled) }
                             )
-                            TextButton(onClick = onEditClick) {
+                            TextButton(onClick = { haptic(); onEditClick() }) {
                                 Text("Ubah")
                             }
-                            TextButton(onClick = onDeleteClick) {
+                            TextButton(onClick = { haptic(); onDeleteClick() }) {
                                 Text("Hapus")
                             }
                         }
@@ -85,17 +88,17 @@ fun AlarmCard(
                     ) {
                         Switch(
                             checked = alarm.enabled,
-                            onCheckedChange = onEnabledChange
+                            onCheckedChange = { enabled -> haptic(); onEnabledChange(enabled) }
                         )
                         Text(
                             text = if (alarm.enabled) "Aktif" else "Nonaktif",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        TextButton(onClick = onEditClick) {
+                        TextButton(onClick = { haptic(); onEditClick() }) {
                             Text("Ubah")
                         }
-                        TextButton(onClick = onDeleteClick) {
+                        TextButton(onClick = { haptic(); onDeleteClick() }) {
                             Text("Hapus")
                         }
                     }

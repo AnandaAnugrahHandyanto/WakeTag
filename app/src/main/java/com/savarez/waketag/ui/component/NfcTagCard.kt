@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.savarez.waketag.nfc.NfcManager
 import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 
 /**
  * Kartu di halaman utama untuk melihat, mendaftarkan, dan menghapus tag NFC.
@@ -33,6 +34,7 @@ fun NfcTagCard(modifier: Modifier = Modifier) {
     var tagId by remember { mutableStateOf(NfcTagStore.getTagId(context)) }
     var showRegisterDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val haptic = rememberHapticFeedback()
 
     ElevatedCard(modifier = modifier.fillMaxWidth()) {
         Column(
@@ -67,6 +69,7 @@ fun NfcTagCard(modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
+                        haptic()
                         errorMessage = when {
                             !nfcManager.isSupported -> "HP ini tidak mendukung NFC."
                             !nfcManager.isEnabled -> {
@@ -86,6 +89,7 @@ fun NfcTagCard(modifier: Modifier = Modifier) {
                 if (tagId != null) {
                     TextButton(
                         onClick = {
+                            haptic()
                             NfcTagStore.clear(context)
                             tagId = null
                             errorMessage = null

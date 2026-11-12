@@ -29,6 +29,12 @@ Alarm biasa (tombol "Matikan") tetap disediakan sebagai pembanding saat demo.
 6. Tempelkan tag NFC → alarm berhenti.
 7. Buka aplikasi lagi → alarm masih berstatus **Aktif** (akan berbunyi lagi besok).
 
+Catatan tombol back:
+
+- Di halaman utama, tekan back **dua kali** untuk keluar.
+- Di layar alarm, tombol back tidak bisa menutup alarm. Alarm harus dimatikan
+  dulu lewat tombol atau tag NFC.
+
 ## 4. Alur kode saat alarm berbunyi
 
 Cukup hafal 5 langkah ini:

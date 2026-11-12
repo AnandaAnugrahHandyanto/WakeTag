@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.savarez.waketag.nfc.NfcManager
 import com.savarez.waketag.nfc.NfcTagStore
+import com.savarez.waketag.util.rememberHapticFeedback
 
 /**
  * Dialog untuk mendaftarkan satu tag NFC.
@@ -23,6 +24,7 @@ fun NfcRegisterDialog(
     val context = LocalContext.current
     val activity = context as? Activity
     val nfcManager = remember { NfcManager(context) }
+    val haptic = rememberHapticFeedback()
 
     DisposableEffect(activity) {
         if (activity != null) {
@@ -50,7 +52,7 @@ fun NfcRegisterDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { haptic(); onDismiss() }) {
                 Text(text = "Batal")
             }
         }

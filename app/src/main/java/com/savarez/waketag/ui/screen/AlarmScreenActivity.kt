@@ -5,7 +5,9 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -40,6 +42,7 @@ import com.savarez.waketag.nfc.NfcManager
 import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.receiver.AlarmDismissReceiver
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 
 class AlarmScreenActivity : ComponentActivity() {
 
@@ -90,6 +93,14 @@ class AlarmScreenActivity : ComponentActivity() {
                         .background(Color.Black),
                     color = Color.Black
                 ) {
+                    BackHandler {
+                        Toast.makeText(
+                            this@AlarmScreenActivity,
+                            "Matikan alarm terlebih dahulu",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
                     AlarmScreenContent(
                         hour = hour,
                         minute = minute,
@@ -208,6 +219,7 @@ fun AlarmScreenContent(
     modifier: Modifier = Modifier
 ) {
     var showForceStopDialog by remember { mutableStateOf(false) }
+    val haptic = rememberHapticFeedback()
 
     Column(
         modifier = modifier
@@ -251,7 +263,7 @@ fun AlarmScreenContent(
 
                 if (!nfcEnabled) {
                     OutlinedButton(
-                        onClick = onOpenNfcSettings,
+                        onClick = { haptic(); onOpenNfcSettings() },
                         modifier = Modifier.padding(top = 12.dp)
                     ) {
                         Text(text = "Aktifkan NFC")
@@ -269,7 +281,7 @@ fun AlarmScreenContent(
 
         if (dismissType == DismissType.NORMAL) {
             Button(
-                onClick = onDismissClick,
+                onClick = { haptic(); onDismissClick() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -285,7 +297,7 @@ fun AlarmScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                TextButton(onClick = { showForceStopDialog = true }) {
+                TextButton(onClick = { haptic(); showForceStopDialog = true }) {
                     Text(text = "Matikan paksa")
                 }
                 Text(
@@ -310,6 +322,7 @@ fun AlarmScreenContent(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        haptic()
                         showForceStopDialog = false
                         onForceStopClick()
                     }
@@ -318,7 +331,7 @@ fun AlarmScreenContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showForceStopDialog = false }) {
+                TextButton(onClick = { haptic(); showForceStopDialog = false }) {
                     Text(text = "Batal")
                 }
             }

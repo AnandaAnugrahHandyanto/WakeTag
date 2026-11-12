@@ -24,6 +24,7 @@ import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.component.AlarmCard
 import com.savarez.waketag.ui.component.NfcTagCard
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 
 @Composable
 fun HomeScreen(
@@ -34,14 +35,16 @@ fun HomeScreen(
     onDeleteAlarmClick: (alarmId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = rememberHapticFeedback()
+
     val fabContent: @Composable () -> Unit = {
         BoxWithConstraints {
             if (maxWidth >= 600.dp) {
-                LargeFloatingActionButton(onClick = onCreateAlarmClick) {
+                LargeFloatingActionButton(onClick = { haptic(); onCreateAlarmClick() }) {
                     Text(text = "Alarm Baru")
                 }
             } else {
-                FloatingActionButton(onClick = onCreateAlarmClick) {
+                FloatingActionButton(onClick = { haptic(); onCreateAlarmClick() }) {
                     Text(text = "+")
                 }
             }

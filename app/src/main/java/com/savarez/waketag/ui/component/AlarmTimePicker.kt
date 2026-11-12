@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 
 private const val ALARM_TIME_PICKER_LOG_TAG = "AlarmTimePicker"
 
@@ -40,6 +40,7 @@ fun AlarmTimePicker(
     modifier: Modifier = Modifier
 ) {
     var activePicker by rememberSaveable { mutableStateOf<PickerType?>(null) }
+    val haptic = rememberHapticFeedback()
 
     fun openPicker(pickerType: PickerType) {
         val wasExpanded = activePicker != null
@@ -69,13 +70,13 @@ fun AlarmTimePicker(
                 NumberPickerField(
                     label = "Jam",
                     value = hour,
-                    onClick = { openPicker(PickerType.HOUR) },
+                    onClick = { haptic(); openPicker(PickerType.HOUR) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 NumberPickerField(
                     label = "Menit",
                     value = minute,
-                    onClick = { openPicker(PickerType.MINUTE) },
+                    onClick = { haptic(); openPicker(PickerType.MINUTE) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -88,13 +89,13 @@ fun AlarmTimePicker(
                 NumberPickerField(
                     label = "Jam",
                     value = hour,
-                    onClick = { openPicker(PickerType.HOUR) },
+                    onClick = { haptic(); openPicker(PickerType.HOUR) },
                     modifier = Modifier.weight(1f)
                 )
                 NumberPickerField(
                     label = "Menit",
                     value = minute,
-                    onClick = { openPicker(PickerType.MINUTE) },
+                    onClick = { haptic(); openPicker(PickerType.MINUTE) },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -141,8 +142,7 @@ private fun NumberPickerField(
         )
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+                .matchParentSize()
                 .clickable { onClick() }
         )
     }
@@ -158,6 +158,7 @@ private fun NumberSelectionDialog(
 ) {
     val initialIndex = (selectedValue - range.first).coerceIn(0, range.last - range.first)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (initialIndex - 3).coerceAtLeast(0))
+    val haptic = rememberHapticFeedback()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -173,7 +174,7 @@ private fun NumberSelectionDialog(
                 items(range.toList()) { option ->
                     val isSelected = option == selectedValue
                     TextButton(
-                        onClick = { onValueSelected(option) },
+                        onClick = { haptic(); onValueSelected(option) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
@@ -195,7 +196,7 @@ private fun NumberSelectionDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { haptic(); onDismiss() }) {
                 Text(text = "Batal")
             }
         }

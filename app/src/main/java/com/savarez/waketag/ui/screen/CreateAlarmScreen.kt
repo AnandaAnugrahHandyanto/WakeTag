@@ -36,6 +36,7 @@ import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.ui.component.AlarmTimePicker
 import com.savarez.waketag.ui.component.DismissTypeChip
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.rememberHapticFeedback
 
 private const val CREATE_ALARM_LOG_TAG = "CreateAlarmScreen"
 
@@ -122,6 +123,8 @@ fun CreateAlarmContent(
     errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val haptic = rememberHapticFeedback()
+
     Surface(modifier = modifier.fillMaxSize()) {
         BoxWithConstraints(
             modifier = Modifier
@@ -207,7 +210,7 @@ fun CreateAlarmContent(
                         )
                         Switch(
                             checked = enabled,
-                            onCheckedChange = onEnabledChange
+                            onCheckedChange = { checked -> haptic(); onEnabledChange(checked) }
                         )
                     }
                 }
@@ -228,13 +231,13 @@ fun CreateAlarmContent(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedButton(
-                            onClick = onBackClick,
+                            onClick = { haptic(); onBackClick() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(text = "Batal")
                         }
                         Button(
-                            onClick = onSaveClick,
+                            onClick = { haptic(); onSaveClick() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(text = saveButtonText)
@@ -246,13 +249,13 @@ fun CreateAlarmContent(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedButton(
-                            onClick = onBackClick,
+                            onClick = { haptic(); onBackClick() },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(text = "Batal")
                         }
                         Button(
-                            onClick = onSaveClick,
+                            onClick = { haptic(); onSaveClick() },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(text = saveButtonText)
