@@ -45,34 +45,105 @@ class WakeTagAlarmManager(
             "Scheduling alarm id=${alarm.id}, requestCode=$requestCode, now=${now.timeInMillis}, triggerAt=$triggerTime, exactAllowed=$canScheduleExact"
         )
 
+        return scheduleAt(
+            triggerTime = triggerTime,
+            pendingIntent = pendingIntent,
+            showIntent = createAlarmClockInfoIntent(alarm.id),
+            logLabel = "alarm id=${alarm.id}"
+        )
+    }
+
+    /**
+     * Menjadwalkan alarm sekali lagi setelah [delayMillis].
+     * Dipakai oleh tombol "Tunda 5 menit" di layar alarm.
+     *
+     * Request code-nya sengaja dibedakan dari alarm harian supaya
+     * snooze tidak menimpa jadwal alarm besok.
+     */
+    fun scheduleSnooze(
+        alarmId: Long,
+        hour: Int,
+        minute: Int,
+        dismissType: DismissType,
+        delayMillis: Long = SNOOZE_DELAY_MILLIS
+    ): Boolean {
+        if (!isValidTime(hour, minute)) {
+            Log.e(TAG, "Invalid snooze time: $hour:$minute")
+            return false
+        }
+
+        val triggerTime = System.currentTimeMillis() + delayMillis
+        val requestCode = snoozeRequestCode(alarmId)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            createAlarmIntent(
+                alarmId = alarmId,
+                hour = hour,
+                minute = minute,
+                dismissType = dismissType,
+                scheduledAtMillis = triggerTime
+            ),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        Log.d(TAG, "Scheduling snooze for alarm id=$alarmId at $triggerTime")
+
+        return scheduleAt(
+            triggerTime = triggerTime,
+            pendingIntent = pendingIntent,
+            showIntent = createAlarmClockInfoIntent(alarmId, requestCode),
+            logLabel = "snooze of alarm id=$alarmId"
+        )
+    }
+
+    fun cancelSnooze(alarmId: Long) {
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            snoozeRequestCode(alarmId),
+            createAlarmIntent(
+                alarmId = alarmId,
+                hour = 0,
+                minute = 0,
+                dismissType = DismissType.NORMAL,
+                scheduledAtMillis = 0L
+            ),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        ) ?: return
+
+        Log.d(TAG, "Cancelling snooze for alarm id=$alarmId")
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
+    }
+
+    private fun scheduleAt(
+        triggerTime: Long,
+        pendingIntent: PendingIntent,
+        showIntent: PendingIntent,
+        logLabel: String
+    ): Boolean {
         return runCatching {
-            if (canScheduleExact) {
+            if (canScheduleExactAlarms()) {
                 alarmManager.setAlarmClock(
-                    AlarmClockInfo(triggerTime, createAlarmClockInfoIntent(alarm.id)),
+                    AlarmClockInfo(triggerTime, showIntent),
                     pendingIntent
                 )
-                Log.d(
-                    TAG,
-                    "Alarm scheduled with setAlarmClock for id=${alarm.id} at $triggerTime"
-                )
+                Log.d(TAG, "Scheduled $logLabel with setAlarmClock at $triggerTime")
             } else {
                 Log.w(
                     TAG,
-                    "Exact alarm permission unavailable; scheduling inexact alarm for id=${alarm.id}"
+                    "Exact alarm permission unavailable; scheduling inexact $logLabel"
                 )
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,
                     pendingIntent
                 )
-                Log.d(
-                    TAG,
-                    "Alarm scheduled with setAndAllowWhileIdle for id=${alarm.id} at $triggerTime"
-                )
+                Log.d(TAG, "Scheduled $logLabel with setAndAllowWhileIdle at $triggerTime")
             }
             true
         }.getOrElse { throwable ->
-            Log.e(TAG, "Failed to schedule alarm id=${alarm.id}", throwable)
+            Log.e(TAG, "Failed to schedule $logLabel", throwable)
             false
         }
     }
@@ -96,6 +167,8 @@ class WakeTagAlarmManager(
     }
 
     fun cancelAlarm(alarmId: Long) {
+        cancelSnooze(alarmId)
+
         val pendingIntent = createCancelPendingIntent(
             alarmId = alarmId,
             hour = 0,
@@ -167,14 +240,17 @@ class WakeTagAlarmManager(
         )
     }
 
-    private fun createAlarmClockInfoIntent(alarmId: Long): PendingIntent {
+    private fun createAlarmClockInfoIntent(
+        alarmId: Long,
+        requestCode: Int = createRequestCode(alarmId)
+    ): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(EXTRA_ALARM_ID, alarmId)
 
         return PendingIntent.getActivity(
             context,
-            createRequestCode(alarmId) + ALARM_CLOCK_REQUEST_OFFSET,
+            requestCode + ALARM_CLOCK_REQUEST_OFFSET,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -199,9 +275,14 @@ class WakeTagAlarmManager(
 
     private fun createRequestCode(alarmId: Long): Int = alarmId.hashCode()
 
+    private fun snoozeRequestCode(alarmId: Long): Int =
+        createRequestCode(alarmId) + SNOOZE_REQUEST_OFFSET
+
     companion object {
         private const val TAG = "WakeTagAlarmManager"
         private const val ALARM_CLOCK_REQUEST_OFFSET = 10_000
+        private const val SNOOZE_REQUEST_OFFSET = 20_000
+        const val SNOOZE_DELAY_MILLIS = 5 * 60 * 1000L
         const val ACTION_TRIGGER_ALARM = "com.savarez.waketag.action.TRIGGER_ALARM"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_ALARM_HOUR = "extra_alarm_hour"

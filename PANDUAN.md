@@ -15,19 +15,27 @@ Alarm biasa (tombol "Matikan") tetap disediakan sebagai pembanding saat demo.
 - Hanya ada 2 metode: **Normal** dan **Tag NFC**.
 - Satu tag NFC dipakai untuk semua alarm NFC.
 - Alarm berbunyi **setiap hari** pada jam yang sama.
+- Ada tombol **Tunda 5 menit** untuk menunda alarm sebentar.
 - Semua data tersimpan di HP. Tidak perlu internet dan tidak ada login.
 - Ada tombol **"Matikan paksa"** sebagai jalur darurat kalau tag hilang.
 
 ## 3. Cara memakai (alur demo)
 
 1. Buka aplikasi, izinkan notifikasi jika diminta.
-2. Di kartu **"Kunci Tag NFC"**, tekan **Daftarkan Tag**, lalu tempelkan tag
+2. Di kartu **"Tag NFC"**, tekan **Daftarkan Tag**, lalu tempelkan tag
    NFC ke belakang HP. UID tag akan muncul.
-3. Tekan tombol **+**, pilih jam, pilih metode **Tag NFC**, lalu **Simpan**.
+3. Tekan tombol **Alarm baru**, ketuk angka jam/menit, pilih metode
+   **Tag NFC**, lalu **Simpan**.
 4. Atur alarm sekitar 2 menit ke depan.
 5. Saat alarm berbunyi, tunjukkan bahwa tidak ada tombol "Matikan" biasa.
 6. Tempelkan tag NFC → alarm berhenti.
 7. Buka aplikasi lagi → alarm masih berstatus **Aktif** (akan berbunyi lagi besok).
+
+Catatan tombol **Tunda 5 menit**:
+
+- Alarm berhenti sementara, lalu berbunyi lagi 5 menit kemudian.
+- Snooze dijadwalkan terpisah dari alarm harian, jadi jadwal besok tidak rusak.
+- Saat alarm berbunyi lagi, alarm NFC tetap hanya bisa dimatikan dengan tag.
 
 Catatan tombol back:
 
@@ -49,6 +57,10 @@ Cukup hafal 5 langkah ini:
 5. **`nfc/NfcManager.kt`** membaca UID tag. UID tersebut dibandingkan dengan
    UID yang disimpan oleh **`nfc/NfcTagStore.kt`**.
    Kalau cocok → **`receiver/AlarmDismissReceiver.kt`** menghentikan suara.
+
+Kalau pengguna memilih **Tunda 5 menit**, `WakeTagAlarmManager.scheduleSnooze`
+membuat jadwal sekali pakai dengan request code berbeda. Jadi alarm harian
+tetap aman, dan alarm berbunyi lagi setelah 5 menit.
 
 ## 5. Peta folder
 
@@ -95,6 +107,12 @@ tag tidak ada, tersedia tombol "Matikan paksa" yang meminta konfirmasi.
 Ya, alarm berbunyi setiap hari pada jam yang sama. Setelah dimatikan, alarm
 tetap aktif dan jadwal besok sudah disiapkan.
 
+**Apa fungsi tombol Tunda 5 menit?**
+Menghentikan alarm sementara lalu menjadwalkan bunyi lagi 5 menit kemudian.
+Snooze memakai request code sendiri di `WakeTagAlarmManager`, sehingga tidak
+menimpa jadwal alarm harian. Kalau alarm sedang di-snooze lalu alarm
+dinonaktifkan atau dihapus, snooze ikut dibatalkan.
+
 **Apakah butuh internet?**
 Tidak. Semua proses berjalan lokal di HP.
 
@@ -130,7 +148,19 @@ app/build/outputs/apk/debug/app-debug.apk
 1. **Masalah** (30 detik): alarm biasa terlalu mudah dimatikan dari kasur.
 2. **Solusi** (30 detik): alarm hanya berhenti dengan tag NFC.
 3. **Demo** (2 menit): daftarkan tag → buat alarm → alarm berbunyi → coba tag
-   salah → tag benar.
+   salah → tag benar. Sebutkan tombol **Tunda 5 menit** sebagai fitur tambahan.
 4. **Penjelasan alur kode** (1 menit): 5 langkah pada bagian 4.
 5. **Batasan dan pengembangan** (1 menit): satu tag, alarm harian, rencana
    fitur riwayat bangun dan beberapa tag per alarm.
+
+## 11. Catatan desain
+
+- Palet **"midnight → sunrise"**: latar gelap ink, aksen amber hangat, dan
+  versi terang bernuansa kertas krem.
+- Angka jam memakai **monospace** agar lebar digit stabil seperti jam digital.
+- Kartu memakai garis tipis dan ruang lega, bukan bayangan tebal, supaya
+  tampilan terasa tenang.
+- Layar alarm selalu gelap agar nyaman dilihat saat baru bangun dan fokus
+  pada waktu serta instruksi tag NFC.
+- Tombol **Tunda 5 menit** diletakkan terpisah dari aksi utama agar tidak
+  mengalahkan tujuan utama alarm.

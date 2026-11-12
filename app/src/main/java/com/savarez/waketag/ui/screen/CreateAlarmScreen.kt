@@ -1,18 +1,19 @@
 package com.savarez.waketag.ui.screen
 
 import android.util.Log
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -20,12 +21,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -125,34 +128,50 @@ fun CreateAlarmContent(
 ) {
     val haptic = rememberHapticFeedback()
 
-    Surface(modifier = modifier.fillMaxSize()) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val horizontalPadding = when {
-                maxWidth < 360.dp -> 12.dp
+                maxWidth < 360.dp -> 16.dp
                 maxWidth < 600.dp -> 20.dp
-                maxWidth < 840.dp -> 24.dp
-                else -> 32.dp
+                else -> 28.dp
             }
             val verticalPadding: Dp = if (maxHeight < 700.dp) 16.dp else 24.dp
-            val contentSpacing: Dp = if (maxWidth < 360.dp) 16.dp else 20.dp
             val maxContentWidth: Dp = if (maxWidth >= 840.dp) 640.dp else 560.dp
-            val compactActions = maxWidth < 420.dp
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .systemBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = horizontalPadding, vertical = verticalPadding)
                     .widthIn(max = maxContentWidth),
-                verticalArrangement = Arrangement.spacedBy(contentSpacing)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                TextButton(
+                    onClick = { haptic(); onBackClick() },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 0.dp,
+                        vertical = 4.dp
+                    )
+                ) {
+                    Text(text = "← Kembali")
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Atur waktu dan cara mematikan alarm.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 AlarmTimePicker(
                     hour = hour,
@@ -161,109 +180,134 @@ fun CreateAlarmContent(
                     onMinuteChange = onMinuteChange
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Metode Mematikan",
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Metode mematikan",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        DismissType.entries.forEach { type ->
-                            DismissTypeChip(
-                                dismissType = type,
-                                selected = dismissType == type,
-                                onClick = { onDismissTypeChange(type) }
-                            )
-                        }
+                    DismissType.entries.forEach { type ->
+                        DismissTypeChip(
+                            dismissType = type,
+                            selected = dismissType == type,
+                            onClick = { onDismissTypeChange(type) }
+                        )
                     }
 
                     if (dismissType == DismissType.NFC) {
-                        Text(
-                            text = if (nfcTagRegistered) {
-                                "Tag NFC sudah terdaftar dan siap dipakai."
-                            } else {
-                                "Belum ada tag NFC. Daftarkan dulu di halaman utama."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (nfcTagRegistered) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.error
-                            }
-                        )
+                        NfcStatusNote(registered = nfcTagRegistered)
                     }
                 }
 
                 if (showEnabledToggle) {
-                    Row(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = "Alarm aktif",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Matikan sementara tanpa menghapus alarm.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = enabled,
+                                onCheckedChange = { checked -> haptic(); onEnabledChange(checked) }
+                            )
+                        }
+                    }
+                }
+
+                errorMessage?.let { message ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Text(
-                            text = "Aktif",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Switch(
-                            checked = enabled,
-                            onCheckedChange = { checked -> haptic(); onEnabledChange(checked) }
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                         )
                     }
                 }
 
-                errorMessage?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (compactActions) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { haptic(); onBackClick() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { haptic(); onBackClick() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(text = "Batal")
-                        }
-                        Button(
-                            onClick = { haptic(); onSaveClick() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(text = saveButtonText)
-                        }
+                        Text(text = "Batal")
                     }
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Button(
+                        onClick = { haptic(); onSaveClick() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { haptic(); onBackClick() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "Batal")
-                        }
-                        Button(
-                            onClick = { haptic(); onSaveClick() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = saveButtonText)
-                        }
+                        Text(text = saveButtonText)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NfcStatusNote(registered: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = if (registered) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.errorContainer
+        }
+    ) {
+        Text(
+            text = if (registered) {
+                "Tag NFC sudah terdaftar. Alarm ini hanya bisa dimatikan dengan tag tersebut."
+            } else {
+                "Belum ada tag NFC. Daftarkan dulu di halaman utama sebelum menyimpan."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (registered) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onErrorContainer
+            },
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        )
     }
 }
 

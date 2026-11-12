@@ -10,14 +10,26 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,9 +45,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.nfc.NfcManager
@@ -48,6 +64,9 @@ class AlarmScreenActivity : ComponentActivity() {
 
     private lateinit var nfcManager: NfcManager
     private var alarmId: Long = -1L
+    private var alarmHour: Int = 0
+    private var alarmMinute: Int = 0
+    private var dismissType: DismissType = DismissType.NORMAL
     private var isNfcAlarm: Boolean = false
 
     private val nfcEnabled = mutableStateOf(false)
@@ -75,9 +94,9 @@ class AlarmScreenActivity : ComponentActivity() {
 
         nfcManager = NfcManager(this)
 
-        val hour = intent.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, 0)
-        val minute = intent.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, 0)
-        val dismissType = intent
+        alarmHour = intent.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, 0)
+        alarmMinute = intent.getIntExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, 0)
+        dismissType = intent
             .getStringExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE)
             ?.let { name -> DismissType.entries.firstOrNull { it.name == name } }
             ?: DismissType.NORMAL
@@ -86,12 +105,11 @@ class AlarmScreenActivity : ComponentActivity() {
         nfcEnabled.value = nfcManager.isEnabled
 
         setContent {
-            WakeTagTheme {
+            // Layar alarm selalu gelap, mengikuti palet "midnight".
+            WakeTagTheme(darkTheme = true) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black),
-                    color = Color.Black
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     BackHandler {
                         Toast.makeText(
@@ -102,12 +120,13 @@ class AlarmScreenActivity : ComponentActivity() {
                     }
 
                     AlarmScreenContent(
-                        hour = hour,
-                        minute = minute,
+                        hour = alarmHour,
+                        minute = alarmMinute,
                         dismissType = dismissType,
                         nfcScanning = nfcScanning.value,
                         nfcEnabled = nfcEnabled.value,
                         nfcMessage = nfcMessage.value,
+                        onSnoozeClick = { snoozeAlarm() },
                         onDismissClick = { dismissAlarm() },
                         onOpenNfcSettings = { nfcManager.openNfcSettings() },
                         onForceStopClick = { dismissAlarm() }
@@ -174,7 +193,31 @@ class AlarmScreenActivity : ComponentActivity() {
         }
     }
 
+    private fun snoozeAlarm() {
+        val scheduled = WakeTagAlarmManager(this).scheduleSnooze(
+            alarmId = alarmId,
+            hour = alarmHour,
+            minute = alarmMinute,
+            dismissType = dismissType
+        )
+        if (!scheduled) {
+            Toast.makeText(
+                this,
+                "Gagal menunda alarm. Coba lagi.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        AlarmDismissReceiver.dismissNow(
+            context = applicationContext,
+            alarmId = alarmId
+        )
+        finish()
+    }
+
     private fun dismissAlarm() {
+        WakeTagAlarmManager(this).cancelSnooze(alarmId)
         AlarmDismissReceiver.dismissNow(
             context = applicationContext,
             alarmId = alarmId
@@ -213,6 +256,7 @@ fun AlarmScreenContent(
     nfcScanning: Boolean,
     nfcEnabled: Boolean,
     nfcMessage: String?,
+    onSnoozeClick: () -> Unit,
     onDismissClick: () -> Unit,
     onOpenNfcSettings: () -> Unit,
     onForceStopClick: () -> Unit,
@@ -220,88 +264,120 @@ fun AlarmScreenContent(
 ) {
     var showForceStopDialog by remember { mutableStateOf(false) }
     val haptic = rememberHapticFeedback()
+    val isNfcAlarm = dismissType == DismissType.NFC
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 40.dp),
+            .systemBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(1.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "WAKE TAG",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 3.sp
+            )
+            Text(
+                text = "ALARM",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 3.sp
+            )
+        }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Alarm",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
                 text = "%02d:%02d".format(hour, minute),
                 style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onBackground
             )
 
-            if (dismissType == DismissType.NFC) {
-                Text(
-                    text = "Ketuk tag NFC untuk mematikan",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 14.dp)
-                )
-                Text(
-                    text = nfcMessage
-                        ?: if (nfcScanning) "Menunggu tag NFC..." else "Siap memindai tag.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (nfcMessage == null) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    modifier = Modifier.padding(top = 10.dp)
-                )
+            Text(
+                text = if (isNfcAlarm) "Tag NFC dibutuhkan" else "Alarm biasa",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 6.dp)
+            )
 
-                if (!nfcEnabled) {
-                    OutlinedButton(
-                        onClick = { haptic(); onOpenNfcSettings() },
-                        modifier = Modifier.padding(top = 12.dp)
-                    ) {
-                        Text(text = "Aktifkan NFC")
-                    }
-                }
+            if (isNfcAlarm) {
+                NfcScanPanel(
+                    scanning = nfcScanning,
+                    enabled = nfcEnabled,
+                    message = nfcMessage,
+                    onOpenNfcSettings = onOpenNfcSettings,
+                    modifier = Modifier.padding(top = 28.dp)
+                )
             } else {
                 Text(
-                    text = "Alarm biasa",
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = "Tekan Matikan untuk menghentikan alarm.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 14.dp)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 28.dp)
                 )
             }
         }
 
-        if (dismissType == DismissType.NORMAL) {
-            Button(
-                onClick = { haptic(); onDismissClick() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                modifier = Modifier
-                    .padding(top = 24.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(text = "Matikan")
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (!isNfcAlarm) {
+                Button(
+                    onClick = { haptic(); onDismissClick() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Matikan",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+
+            OutlinedButton(
+                onClick = { haptic(); onSnoozeClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
+                Text(
+                    text = "Tunda 5 menit",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            if (isNfcAlarm) {
                 TextButton(onClick = { haptic(); showForceStopDialog = true }) {
-                    Text(text = "Matikan paksa")
+                    Text(
+                        text = "Matikan paksa",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Text(
                     text = "Gunakan hanya jika tag tidak bisa dipakai.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Alarm akan berbunyi lagi dalam 5 menit.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -339,10 +415,113 @@ fun AlarmScreenContent(
     }
 }
 
+@Composable
+private fun NfcScanPanel(
+    scanning: Boolean,
+    enabled: Boolean,
+    message: String?,
+    onOpenNfcSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = rememberHapticFeedback()
+    val hasError = message != null
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (hasError) {
+                MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatusDot(
+                    active = scanning && !hasError,
+                    color = if (hasError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                )
+                Text(
+                    text = when {
+                        hasError -> "Perlu perhatian"
+                        scanning -> "Menunggu tag NFC"
+                        else -> "Menyiapkan pembaca NFC"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (hasError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = message ?: "Tempelkan tag ke bagian belakang HP. " +
+                    "Alarm berhenti setelah tag yang terdaftar terbaca.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            if (!enabled) {
+                OutlinedButton(onClick = { haptic(); onOpenNfcSettings() }) {
+                    Text(text = "Aktifkan NFC")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusDot(active: Boolean, color: Color) {
+    val alpha = if (active) {
+        val transition = rememberInfiniteTransition(label = "scan")
+        val value by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scanAlpha"
+        )
+        value
+    } else {
+        0.5f
+    }
+
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = alpha))
+            .border(1.dp, color.copy(alpha = 0.35f), CircleShape)
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
-private fun AlarmScreenContentPreview() {
-    WakeTagTheme {
+private fun AlarmScreenNfcPreview() {
+    WakeTagTheme(darkTheme = true) {
         AlarmScreenContent(
             hour = 7,
             minute = 30,
@@ -350,6 +529,26 @@ private fun AlarmScreenContentPreview() {
             nfcScanning = true,
             nfcEnabled = true,
             nfcMessage = null,
+            onSnoozeClick = {},
+            onDismissClick = {},
+            onOpenNfcSettings = {},
+            onForceStopClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AlarmScreenNormalPreview() {
+    WakeTagTheme(darkTheme = true) {
+        AlarmScreenContent(
+            hour = 5,
+            minute = 45,
+            dismissType = DismissType.NORMAL,
+            nfcScanning = false,
+            nfcEnabled = true,
+            nfcMessage = null,
+            onSnoozeClick = {},
             onDismissClick = {},
             onOpenNfcSettings = {},
             onForceStopClick = {}

@@ -110,10 +110,10 @@ class AlarmPlaybackService : Service() {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "WakeTag Alarms",
+                "Alarm WakeTag",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alarm alerts and fullscreen wake notifications"
+                description = "Notifikasi alarm dan layar bangun WakeTag"
                 setBypassDnd(true)
                 enableVibration(false)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC

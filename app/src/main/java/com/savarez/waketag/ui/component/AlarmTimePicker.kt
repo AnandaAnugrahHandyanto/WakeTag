@@ -1,20 +1,22 @@
 package com.savarez.waketag.ui.component
 
-import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,15 +24,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
-private const val ALARM_TIME_PICKER_LOG_TAG = "AlarmTimePicker"
-
+/**
+ * Pemilih jam dan menit.
+ *
+ * Angka jam dan menit ditampilkan besar seperti jam digital, lalu
+ * masing-masing bisa diketuk untuk membuka pilihan angka.
+ */
 @Composable
 fun AlarmTimePicker(
     hour: Int,
@@ -42,64 +51,48 @@ fun AlarmTimePicker(
     var activePicker by rememberSaveable { mutableStateOf<PickerType?>(null) }
     val haptic = rememberHapticFeedback()
 
-    fun openPicker(pickerType: PickerType) {
-        val wasExpanded = activePicker != null
-        if (!wasExpanded) {
-            Log.d(ALARM_TIME_PICKER_LOG_TAG, "expanded changed: true")
-        }
-        Log.d(ALARM_TIME_PICKER_LOG_TAG, "${pickerType.label} picker opened")
-        activePicker = pickerType
-    }
-
-    fun closePicker() {
-        if (activePicker != null) {
-            Log.d(ALARM_TIME_PICKER_LOG_TAG, "expanded changed: false")
-        }
-        activePicker = null
-    }
-
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-
-        val compact = maxWidth < 360.dp
-
-        if (compact) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                NumberPickerField(
-                    label = "Jam",
-                    value = hour,
-                    onClick = { haptic(); openPicker(PickerType.HOUR) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                NumberPickerField(
-                    label = "Menit",
-                    value = minute,
-                    onClick = { haptic(); openPicker(PickerType.MINUTE) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        } else {
-
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                NumberPickerField(
-                    label = "Jam",
+                TimeSection(
+                    label = "JAM",
                     value = hour,
-                    onClick = { haptic(); openPicker(PickerType.HOUR) },
+                    onClick = { haptic(); activePicker = PickerType.HOUR },
                     modifier = Modifier.weight(1f)
                 )
-                NumberPickerField(
-                    label = "Menit",
+                Text(
+                    text = ":",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+                TimeSection(
+                    label = "MENIT",
                     value = minute,
-                    onClick = { haptic(); openPicker(PickerType.MINUTE) },
+                    onClick = { haptic(); activePicker = PickerType.MINUTE },
                     modifier = Modifier.weight(1f)
                 )
             }
         }
+
+        Text(
+            text = "Ketuk jam atau menit untuk mengubah.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 
     activePicker?.let { pickerType ->
@@ -107,43 +100,43 @@ fun AlarmTimePicker(
             title = "Pilih ${pickerType.label}",
             selectedValue = if (pickerType == PickerType.HOUR) hour else minute,
             range = if (pickerType == PickerType.HOUR) 0..23 else 0..59,
-            onDismiss = { closePicker() },
+            onDismiss = { activePicker = null },
             onValueSelected = { selected ->
-                Log.d(ALARM_TIME_PICKER_LOG_TAG, "${pickerType.label} selected: $selected")
                 if (pickerType == PickerType.HOUR) {
                     onHourChange(selected)
                 } else {
                     onMinuteChange(selected)
                 }
-                closePicker()
+                activePicker = null
             }
         )
     }
 }
 
 @Composable
-private fun NumberPickerField(
+private fun TimeSection(
     label: String,
     value: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedTextField(
-            value = "%02d".format(value),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(text = label) },
-            trailingIcon = { Text(text = "▼") },
-            modifier = Modifier
-                .fillMaxWidth()
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 1.6.sp
         )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable { onClick() }
+        Text(
+            text = "%02d".format(value),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -156,40 +149,58 @@ private fun NumberSelectionDialog(
     onDismiss: () -> Unit,
     onValueSelected: (Int) -> Unit
 ) {
-    val initialIndex = (selectedValue - range.first).coerceIn(0, range.last - range.first)
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (initialIndex - 3).coerceAtLeast(0))
     val haptic = rememberHapticFeedback()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = {
-            LazyColumn(
-                state = listState,
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(6),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 320.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .heightIn(max = 300.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(range.toList()) { option ->
                     val isSelected = option == selectedValue
-                    TextButton(
+                    Surface(
                         onClick = { haptic(); onValueSelected(option) },
-                        modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        contentColor = if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        border = if (isSelected) {
+                            null
+                        } else {
+                            BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
                     ) {
-                        Text(
-                            text = "%02d".format(option),
-                            style = if (isSelected) {
-                                MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                            } else {
-                                MaterialTheme.typography.bodyLarge
-                            },
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
+                        Box(
+                            modifier = Modifier.height(44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "%02d".format(option),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = if (isSelected) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Medium
+                                }
+                            )
+                        }
                     }
                 }
             }
