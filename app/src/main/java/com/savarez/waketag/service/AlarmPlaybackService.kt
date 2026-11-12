@@ -63,7 +63,8 @@ class AlarmPlaybackService : Service() {
             alarmId = payload.alarmId,
             hour = payload.hour,
             minute = payload.minute,
-            dismissType = payload.dismissType.name
+            dismissType = payload.dismissType.name,
+            label = payload.label
         )
         val fullscreenPendingIntent = PendingIntent.getActivity(
             this,
@@ -72,10 +73,20 @@ class AlarmPlaybackService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val title = payload.label.ifBlank { "Alarm WakeTag" }
+        val detail = buildString {
+            append("%02d:%02d".format(payload.hour, payload.minute))
+            append(" • ")
+            append(payload.dismissType.displayLabel)
+            if (payload.isSnooze) {
+                append(" • Tunda")
+            }
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Alarm WakeTag")
-            .setContentText("%02d:%02d • %s".format(payload.hour, payload.minute, payload.dismissType.displayLabel))
+            .setContentTitle(title)
+            .setContentText(detail)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -92,7 +103,8 @@ class AlarmPlaybackService : Service() {
             alarmId = payload.alarmId,
             hour = payload.hour,
             minute = payload.minute,
-            dismissType = payload.dismissType.name
+            dismissType = payload.dismissType.name,
+            label = payload.label
         )
         runCatching {
             startActivity(intent)

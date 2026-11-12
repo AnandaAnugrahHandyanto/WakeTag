@@ -8,6 +8,8 @@ data class AlarmTriggerPayload(
     val hour: Int,
     val minute: Int,
     val dismissType: DismissType,
+    val label: String,
+    val isSnooze: Boolean,
     val scheduledAtMillis: Long
 ) {
     fun putExtras(intent: Intent): Intent {
@@ -16,6 +18,8 @@ data class AlarmTriggerPayload(
             .putExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, hour)
             .putExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, minute)
             .putExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE, dismissType.name)
+            .putExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL, label)
+            .putExtra(WakeTagAlarmManager.EXTRA_IS_SNOOZE, isSnooze)
             .putExtra(WakeTagAlarmManager.EXTRA_SCHEDULED_AT_MILLIS, scheduledAtMillis)
     }
 
@@ -30,12 +34,16 @@ data class AlarmTriggerPayload(
                 .getStringExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE)
                 ?.let { name -> DismissType.entries.firstOrNull { it.name == name } }
                 ?: DismissType.NORMAL
+            val label = source.getStringExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL).orEmpty()
+            val isSnooze = source.getBooleanExtra(WakeTagAlarmManager.EXTRA_IS_SNOOZE, false)
             val scheduledAtMillis = source.getLongExtra(WakeTagAlarmManager.EXTRA_SCHEDULED_AT_MILLIS, 0L)
             return AlarmTriggerPayload(
                 alarmId = alarmId,
                 hour = hour,
                 minute = minute,
                 dismissType = dismissType,
+                label = label,
+                isSnooze = isSnooze,
                 scheduledAtMillis = scheduledAtMillis
             )
         }

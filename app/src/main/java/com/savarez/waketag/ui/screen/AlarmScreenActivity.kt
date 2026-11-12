@@ -57,6 +57,7 @@ import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.nfc.NfcManager
 import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.receiver.AlarmDismissReceiver
+import com.savarez.waketag.ui.component.AlarmLabelPill
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
@@ -66,6 +67,7 @@ class AlarmScreenActivity : ComponentActivity() {
     private var alarmId: Long = -1L
     private var alarmHour: Int = 0
     private var alarmMinute: Int = 0
+    private var alarmLabel: String = ""
     private var dismissType: DismissType = DismissType.NORMAL
     private var isNfcAlarm: Boolean = false
 
@@ -101,6 +103,7 @@ class AlarmScreenActivity : ComponentActivity() {
             ?.let { name -> DismissType.entries.firstOrNull { it.name == name } }
             ?: DismissType.NORMAL
         alarmId = intent.getLongExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, -1L)
+        alarmLabel = intent.getStringExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL).orEmpty()
         isNfcAlarm = dismissType == DismissType.NFC
         nfcEnabled.value = nfcManager.isEnabled
 
@@ -122,6 +125,7 @@ class AlarmScreenActivity : ComponentActivity() {
                     AlarmScreenContent(
                         hour = alarmHour,
                         minute = alarmMinute,
+                        label = alarmLabel,
                         dismissType = dismissType,
                         nfcScanning = nfcScanning.value,
                         nfcEnabled = nfcEnabled.value,
@@ -198,7 +202,8 @@ class AlarmScreenActivity : ComponentActivity() {
             alarmId = alarmId,
             hour = alarmHour,
             minute = alarmMinute,
-            dismissType = dismissType
+            dismissType = dismissType,
+            label = alarmLabel
         )
         if (!scheduled) {
             Toast.makeText(
@@ -231,13 +236,15 @@ class AlarmScreenActivity : ComponentActivity() {
             alarmId: Long,
             hour: Int,
             minute: Int,
-            dismissType: String
+            dismissType: String,
+            label: String = ""
         ): Intent {
             return Intent(context, AlarmScreenActivity::class.java)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_ID, alarmId)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_HOUR, hour)
                 .putExtra(WakeTagAlarmManager.EXTRA_ALARM_MINUTE, minute)
                 .putExtra(WakeTagAlarmManager.EXTRA_DISMISS_TYPE, dismissType)
+                .putExtra(WakeTagAlarmManager.EXTRA_ALARM_LABEL, label)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TASK or
@@ -252,6 +259,7 @@ class AlarmScreenActivity : ComponentActivity() {
 fun AlarmScreenContent(
     hour: Int,
     minute: Int,
+    label: String,
     dismissType: DismissType,
     nfcScanning: Boolean,
     nfcEnabled: Boolean,
@@ -294,6 +302,14 @@ fun AlarmScreenContent(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (label.isNotBlank()) {
+                AlarmLabelPill(
+                    label = label,
+                    prominent = true,
+                    modifier = Modifier.padding(bottom = 14.dp)
+                )
+            }
+
             Text(
                 text = "%02d:%02d".format(hour, minute),
                 style = MaterialTheme.typography.displayLarge,
@@ -525,6 +541,7 @@ private fun AlarmScreenNfcPreview() {
         AlarmScreenContent(
             hour = 7,
             minute = 30,
+            label = "Kuliah",
             dismissType = DismissType.NFC,
             nfcScanning = true,
             nfcEnabled = true,
@@ -544,6 +561,7 @@ private fun AlarmScreenNormalPreview() {
         AlarmScreenContent(
             hour = 5,
             minute = 45,
+            label = "",
             dismissType = DismissType.NORMAL,
             nfcScanning = false,
             nfcEnabled = true,

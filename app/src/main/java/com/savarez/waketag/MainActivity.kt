@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import com.savarez.waketag.alarm.SnoozeStore
 import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
@@ -62,6 +63,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Snooze bisa dijadwalkan dari layar alarm, jadi data dibaca ulang saat
+        // halaman utama muncul kembali.
+        SnoozeStore.refresh(this)
+    }
+
     private fun requestNotificationPermissionIfNeeded() {
         val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -83,6 +91,7 @@ private fun WakeTagApp() {
     val alarmRepository = remember { AlarmRepositoryProvider.get(context) }
     val alarmManager = remember { WakeTagAlarmManager(context) }
     val alarms by alarmRepository.alarms.collectAsState(initial = emptyList())
+    val snooze by SnoozeStore.snooze.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
     var editingAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -140,6 +149,7 @@ private fun WakeTagApp() {
     }
 
     LaunchedEffect(Unit) {
+        SnoozeStore.refresh(context)
         alarmRepository.getEnabledAlarms().forEach { alarm ->
             val isScheduled = alarmManager.scheduleAlarm(alarm)
             if (!isScheduled) {
@@ -161,6 +171,7 @@ private fun WakeTagApp() {
         WakeTagScreen.HOME -> {
             HomeScreen(
                 alarms = alarms,
+                snooze = snooze,
                 onCreateAlarmClick = {
                     val now = Calendar.getInstance()
                     createHour = now.get(Calendar.HOUR_OF_DAY)
@@ -198,12 +209,13 @@ private fun WakeTagApp() {
                 initialMinute = editingAlarm?.minute ?: createMinute,
                 initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
                 initialEnabled = editingAlarm?.enabled ?: true,
+                initialLabel = editingAlarm?.label.orEmpty(),
                 showEnabledToggle = editingAlarm != null,
                 onBackClick = {
                     editingAlarmId = null
                     currentScreen = WakeTagScreen.HOME.name
                 },
-                onSaveAlarm = { hour, minute, dismissType, enabled ->
+                onSaveAlarm = { hour, minute, dismissType, enabled, label ->
                     if (!alarmManager.isValidTime(hour, minute)) {
                         Log.e(
                             WAKE_TAG_APP_LOG_TAG,
@@ -213,7 +225,7 @@ private fun WakeTagApp() {
                     }
                     coroutineScope.launch {
                         val alarmId = if (editingAlarmId == null) {
-                            val createdAlarm = alarmRepository.addAlarm(hour, minute, dismissType)
+                            val createdAlarm = alarmRepository.addAlarm(hour, minute, dismissType, label)
                             createdAlarm.id
                         } else {
                             val existingId = editingAlarmId ?: return@launch
@@ -223,7 +235,8 @@ private fun WakeTagApp() {
                                 hour = hour,
                                 minute = minute,
                                 dismissType = dismissType,
-                                enabled = enabled
+                                enabled = enabled,
+                                label = label
                             )
                             updatedAlarm?.id ?: existingId
                         }

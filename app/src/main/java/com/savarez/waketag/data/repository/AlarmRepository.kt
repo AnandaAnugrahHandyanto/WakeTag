@@ -14,13 +14,19 @@ class AlarmRepository(
         entities.map { it.toModel() }
     }
 
-    suspend fun addAlarm(hour: Int, minute: Int, dismissType: DismissType): Alarm {
+    suspend fun addAlarm(
+        hour: Int,
+        minute: Int,
+        dismissType: DismissType,
+        label: String = ""
+    ): Alarm {
         val id = alarmDao.insert(
             AlarmEntity(
                 hour = hour,
                 minute = minute,
                 enabled = true,
-                dismissType = dismissType.name
+                dismissType = dismissType.name,
+                label = label.trim()
             )
         )
         return requireNotNull(getAlarmById(id))
@@ -46,14 +52,16 @@ class AlarmRepository(
         hour: Int,
         minute: Int,
         dismissType: DismissType,
-        enabled: Boolean
+        enabled: Boolean,
+        label: String
     ): Alarm? {
         val currentAlarm = alarmDao.getById(alarmId) ?: return null
         val updatedAlarm = currentAlarm.copy(
             hour = hour,
             minute = minute,
             dismissType = dismissType.name,
-            enabled = enabled
+            enabled = enabled,
+            label = label.trim()
         )
         alarmDao.update(updatedAlarm)
         return updatedAlarm.toModel()
@@ -69,7 +77,8 @@ class AlarmRepository(
             hour = hour,
             minute = minute,
             enabled = enabled,
-            dismissType = DismissType.entries.firstOrNull { it.name == dismissType } ?: DismissType.NORMAL
+            dismissType = DismissType.entries.firstOrNull { it.name == dismissType } ?: DismissType.NORMAL,
+            label = label
         )
     }
 }

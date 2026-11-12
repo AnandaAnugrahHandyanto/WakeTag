@@ -36,6 +36,8 @@ class WakeTagAlarmManager(
             hour = alarm.hour,
             minute = alarm.minute,
             dismissType = alarm.dismissType,
+            label = alarm.label,
+            isSnooze = false,
             scheduledAtMillis = triggerTime
         )
         val canScheduleExact = canScheduleExactAlarms()
@@ -65,6 +67,7 @@ class WakeTagAlarmManager(
         hour: Int,
         minute: Int,
         dismissType: DismissType,
+        label: String = "",
         delayMillis: Long = SNOOZE_DELAY_MILLIS
     ): Boolean {
         if (!isValidTime(hour, minute)) {
@@ -82,6 +85,8 @@ class WakeTagAlarmManager(
                 hour = hour,
                 minute = minute,
                 dismissType = dismissType,
+                label = label,
+                isSnooze = true,
                 scheduledAtMillis = triggerTime
             ),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -89,15 +94,32 @@ class WakeTagAlarmManager(
 
         Log.d(TAG, "Scheduling snooze for alarm id=$alarmId at $triggerTime")
 
-        return scheduleAt(
+        val scheduled = scheduleAt(
             triggerTime = triggerTime,
             pendingIntent = pendingIntent,
             showIntent = createAlarmClockInfoIntent(alarmId, requestCode),
             logLabel = "snooze of alarm id=$alarmId"
         )
+
+        if (scheduled) {
+            SnoozeStore.save(
+                context,
+                SnoozeStore.SnoozeInfo(
+                    alarmId = alarmId,
+                    hour = hour,
+                    minute = minute,
+                    label = label.trim(),
+                    dismissType = dismissType,
+                    triggerAtMillis = triggerTime
+                )
+            )
+        }
+        return scheduled
     }
 
     fun cancelSnooze(alarmId: Long) {
+        SnoozeStore.clearForAlarm(context, alarmId)
+
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             snoozeRequestCode(alarmId),
@@ -106,6 +128,8 @@ class WakeTagAlarmManager(
                 hour = 0,
                 minute = 0,
                 dismissType = DismissType.NORMAL,
+                label = "",
+                isSnooze = true,
                 scheduledAtMillis = 0L
             ),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
@@ -173,7 +197,8 @@ class WakeTagAlarmManager(
             alarmId = alarmId,
             hour = 0,
             minute = 0,
-            dismissType = DismissType.NORMAL
+            dismissType = DismissType.NORMAL,
+            label = ""
         )
 
         pendingIntent?.let {
@@ -202,6 +227,8 @@ class WakeTagAlarmManager(
         hour: Int,
         minute: Int,
         dismissType: DismissType,
+        label: String,
+        isSnooze: Boolean,
         scheduledAtMillis: Long
     ): PendingIntent {
         return createAlarmIntent(
@@ -209,6 +236,8 @@ class WakeTagAlarmManager(
             hour = hour,
             minute = minute,
             dismissType = dismissType,
+            label = label,
+            isSnooze = isSnooze,
             scheduledAtMillis = scheduledAtMillis
         ).let { intent ->
             PendingIntent.getBroadcast(
@@ -224,7 +253,8 @@ class WakeTagAlarmManager(
         alarmId: Long,
         hour: Int,
         minute: Int,
-        dismissType: DismissType
+        dismissType: DismissType,
+        label: String
     ): PendingIntent? {
         return PendingIntent.getBroadcast(
             context,
@@ -234,6 +264,8 @@ class WakeTagAlarmManager(
                 hour = hour,
                 minute = minute,
                 dismissType = dismissType,
+                label = label,
+                isSnooze = false,
                 scheduledAtMillis = 0L
             ),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
@@ -261,6 +293,8 @@ class WakeTagAlarmManager(
         hour: Int,
         minute: Int,
         dismissType: DismissType,
+        label: String,
+        isSnooze: Boolean,
         scheduledAtMillis: Long
     ): Intent {
         return Intent(context, AlarmReceiver::class.java)
@@ -270,6 +304,8 @@ class WakeTagAlarmManager(
             .putExtra(EXTRA_ALARM_HOUR, hour)
             .putExtra(EXTRA_ALARM_MINUTE, minute)
             .putExtra(EXTRA_DISMISS_TYPE, dismissType.name)
+            .putExtra(EXTRA_ALARM_LABEL, label)
+            .putExtra(EXTRA_IS_SNOOZE, isSnooze)
             .putExtra(EXTRA_SCHEDULED_AT_MILLIS, scheduledAtMillis)
     }
 
@@ -288,6 +324,8 @@ class WakeTagAlarmManager(
         const val EXTRA_ALARM_HOUR = "extra_alarm_hour"
         const val EXTRA_ALARM_MINUTE = "extra_alarm_minute"
         const val EXTRA_DISMISS_TYPE = "extra_dismiss_type"
+        const val EXTRA_ALARM_LABEL = "extra_alarm_label"
+        const val EXTRA_IS_SNOOZE = "extra_is_snooze"
         const val EXTRA_SCHEDULED_AT_MILLIS = "extra_scheduled_at_millis"
     }
 }

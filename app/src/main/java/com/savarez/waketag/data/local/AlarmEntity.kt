@@ -1,5 +1,6 @@
 package com.savarez.waketag.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,5 +11,7 @@ data class AlarmEntity(
     val hour: Int,
     val minute: Int,
     val enabled: Boolean,
-    val dismissType: String
+    val dismissType: String,
+    @ColumnInfo(defaultValue = "''")
+    val label: String = ""
 )

@@ -69,6 +69,10 @@ fun AlarmCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    if (alarm.label.isNotBlank()) {
+                        AlarmLabelPill(label = alarm.label)
+                    }
+
                     Text(
                         text = "%02d:%02d".format(alarm.hour, alarm.minute),
                         style = MaterialTheme.typography.displaySmall,
@@ -156,7 +160,8 @@ private fun AlarmCardPreview() {
                 hour = 7,
                 minute = 15,
                 enabled = true,
-                dismissType = DismissType.NFC
+                dismissType = DismissType.NFC,
+                label = "Kuliah"
             ),
             onEnabledChange = {},
             onEditClick = {},

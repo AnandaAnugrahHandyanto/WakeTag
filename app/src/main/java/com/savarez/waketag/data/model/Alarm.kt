@@ -5,5 +5,6 @@ data class Alarm(
     val hour: Int,
     val minute: Int,
     val enabled: Boolean,
-    val dismissType: DismissType
+    val dismissType: DismissType,
+    val label: String = ""
 )

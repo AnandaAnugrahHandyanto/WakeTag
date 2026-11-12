@@ -16,8 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -42,6 +45,8 @@ import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 
 private const val CREATE_ALARM_LOG_TAG = "CreateAlarmScreen"
+private const val MAX_LABEL_LENGTH = 24
+private val LABEL_PRESETS = listOf("Kuliah", "Kerja", "Pribadi")
 
 @Composable
 fun CreateAlarmScreen(
@@ -52,13 +57,20 @@ fun CreateAlarmScreen(
     initialMinute: Int = 0,
     initialDismissType: DismissType = DismissType.NORMAL,
     initialEnabled: Boolean = true,
+    initialLabel: String = "",
     showEnabledToggle: Boolean = false,
     onBackClick: () -> Unit = {},
-    onSaveAlarm: (hour: Int, minute: Int, dismissType: DismissType, enabled: Boolean) -> Unit = { hour, minute, dismissType, enabled ->
+    onSaveAlarm: (
+        hour: Int,
+        minute: Int,
+        dismissType: DismissType,
+        enabled: Boolean,
+        label: String
+    ) -> Unit = { hour, minute, dismissType, enabled, label ->
         Log.d(
             CREATE_ALARM_LOG_TAG,
-            "Save alarm tapped: %02d:%02d, dismissType=%s, enabled=%s"
-                .format(hour, minute, dismissType.name, enabled)
+            "Save alarm tapped: %02d:%02d, dismissType=%s, enabled=%s, label=%s"
+                .format(hour, minute, dismissType.name, enabled, label.ifBlank { "-" })
         )
     }
 ) {
@@ -66,6 +78,7 @@ fun CreateAlarmScreen(
     var selectedMinute by rememberSaveable(initialMinute) { mutableIntStateOf(initialMinute) }
     var selectedDismissType by rememberSaveable(initialDismissType) { mutableStateOf(initialDismissType) }
     var selectedEnabled by rememberSaveable(initialEnabled) { mutableStateOf(initialEnabled) }
+    var selectedLabel by rememberSaveable(initialLabel) { mutableStateOf(initialLabel) }
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val nfcTagRegistered = NfcTagStore.getTagId(context) != null
@@ -77,12 +90,14 @@ fun CreateAlarmScreen(
         minute = selectedMinute,
         dismissType = selectedDismissType,
         enabled = selectedEnabled,
+        label = selectedLabel,
         showEnabledToggle = showEnabledToggle,
         nfcTagRegistered = nfcTagRegistered,
         onHourChange = { selectedHour = it },
         onMinuteChange = { selectedMinute = it },
         onDismissTypeChange = { selectedDismissType = it },
         onEnabledChange = { selectedEnabled = it },
+        onLabelChange = { selectedLabel = it },
         onBackClick = onBackClick,
         onSaveClick = {
             saveError = null
@@ -95,11 +110,18 @@ fun CreateAlarmScreen(
             } else if (selectedDismissType == DismissType.NFC && !nfcTagRegistered) {
                 saveError = "Daftarkan tag NFC dulu di halaman utama."
             } else {
-                runCatching { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType, selectedEnabled) }
-                    .onFailure { throwable ->
-                        saveError = "Gagal menyimpan alarm. Coba lagi."
-                        Log.e(CREATE_ALARM_LOG_TAG, "Alarm save failed", throwable)
-                    }
+                runCatching {
+                    onSaveAlarm(
+                        selectedHour,
+                        selectedMinute,
+                        selectedDismissType,
+                        selectedEnabled,
+                        selectedLabel.trim()
+                    )
+                }.onFailure { throwable ->
+                    saveError = "Gagal menyimpan alarm. Coba lagi."
+                    Log.e(CREATE_ALARM_LOG_TAG, "Alarm save failed", throwable)
+                }
             }
         },
         errorMessage = saveError,
@@ -115,12 +137,14 @@ fun CreateAlarmContent(
     minute: Int,
     dismissType: DismissType,
     enabled: Boolean,
+    label: String,
     showEnabledToggle: Boolean,
     nfcTagRegistered: Boolean,
     onHourChange: (Int) -> Unit,
     onMinuteChange: (Int) -> Unit,
     onDismissTypeChange: (DismissType) -> Unit,
     onEnabledChange: (Boolean) -> Unit,
+    onLabelChange: (String) -> Unit,
     onBackClick: () -> Unit,
     onSaveClick: () -> Unit,
     errorMessage: String? = null,
@@ -179,6 +203,49 @@ fun CreateAlarmContent(
                     onHourChange = onHourChange,
                     onMinuteChange = onMinuteChange
                 )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Label alarm",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Beri nama agar kamu tahu alarm ini untuk apa.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LABEL_PRESETS.forEach { preset ->
+                            val selected = label.equals(preset, ignoreCase = true)
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    haptic()
+                                    onLabelChange(if (selected) "" else preset)
+                                },
+                                label = { Text(text = preset) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = label,
+                        onValueChange = { newValue ->
+                            onLabelChange(newValue.take(MAX_LABEL_LENGTH))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = "Tulis label") },
+                        placeholder = { Text(text = "Contoh: Kuliah pagi") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -322,12 +389,14 @@ private fun CreateAlarmContentPreview() {
             minute = 45,
             dismissType = DismissType.NFC,
             enabled = true,
+            label = "Kuliah",
             showEnabledToggle = true,
             nfcTagRegistered = true,
             onHourChange = {},
             onMinuteChange = {},
             onDismissTypeChange = {},
             onEnabledChange = {},
+            onLabelChange = {},
             onBackClick = {},
             onSaveClick = {}
         )
