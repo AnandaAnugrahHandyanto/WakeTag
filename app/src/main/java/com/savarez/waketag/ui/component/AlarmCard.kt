@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.theme.WakeTagTheme
+import com.savarez.waketag.util.dismissHint
 import com.savarez.waketag.util.displayLabel
-import com.savarez.waketag.util.futureCapabilityHint
 
 @Composable
 fun AlarmCard(
@@ -50,7 +50,7 @@ fun AlarmCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (alarm.enabled) "Enabled" else "Disabled",
+                            text = if (alarm.enabled) "Aktif" else "Nonaktif",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -60,10 +60,10 @@ fun AlarmCard(
                                 onCheckedChange = onEnabledChange
                             )
                             TextButton(onClick = onEditClick) {
-                                Text("Edit")
+                                Text("Ubah")
                             }
                             TextButton(onClick = onDeleteClick) {
-                                Text("Delete")
+                                Text("Hapus")
                             }
                         }
                     }
@@ -88,15 +88,15 @@ fun AlarmCard(
                             onCheckedChange = onEnabledChange
                         )
                         Text(
-                            text = if (alarm.enabled) "Enabled" else "Disabled",
+                            text = if (alarm.enabled) "Aktif" else "Nonaktif",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         TextButton(onClick = onEditClick) {
-                            Text("Edit")
+                            Text("Ubah")
                         }
                         TextButton(onClick = onDeleteClick) {
-                            Text("Delete")
+                            Text("Hapus")
                         }
                     }
                 }
@@ -123,7 +123,7 @@ private fun AlarmInfoContent(
             style = MaterialTheme.typography.titleSmall
         )
         Text(
-            text = alarm.dismissType.futureCapabilityHint,
+            text = alarm.dismissType.dismissHint,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -140,7 +140,7 @@ private fun AlarmCardPreview() {
                 hour = 7,
                 minute = 15,
                 enabled = true,
-                dismissType = DismissType.QR
+                dismissType = DismissType.NFC
             ),
             onEnabledChange = {},
             onEditClick = {},

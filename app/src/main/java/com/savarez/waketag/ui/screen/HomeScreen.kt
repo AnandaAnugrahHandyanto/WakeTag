@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.savarez.waketag.data.model.Alarm
 import com.savarez.waketag.data.model.DismissType
 import com.savarez.waketag.ui.component.AlarmCard
+import com.savarez.waketag.ui.component.NfcTagCard
 import com.savarez.waketag.ui.theme.WakeTagTheme
 
 @Composable
@@ -37,7 +38,7 @@ fun HomeScreen(
         BoxWithConstraints {
             if (maxWidth >= 600.dp) {
                 LargeFloatingActionButton(onClick = onCreateAlarmClick) {
-                    Text(text = "New Alarm")
+                    Text(text = "Alarm Baru")
                 }
             } else {
                 FloatingActionButton(onClick = onCreateAlarmClick) {
@@ -77,9 +78,11 @@ fun HomeScreen(
                     style = MaterialTheme.typography.headlineMedium
                 )
 
+                NfcTagCard()
+
                 if (alarms.isEmpty()) {
                     Text(
-                        text = "No alarms yet. Tap + to create your first alarm.",
+                        text = "Belum ada alarm. Tekan + untuk membuat alarm pertama.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

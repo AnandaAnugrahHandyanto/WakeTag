@@ -27,10 +27,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.savarez.waketag.data.model.DismissType
+import com.savarez.waketag.nfc.NfcTagStore
 import com.savarez.waketag.ui.component.AlarmTimePicker
 import com.savarez.waketag.ui.component.DismissTypeChip
 import com.savarez.waketag.ui.theme.WakeTagTheme
@@ -40,8 +42,8 @@ private const val CREATE_ALARM_LOG_TAG = "CreateAlarmScreen"
 @Composable
 fun CreateAlarmScreen(
     modifier: Modifier = Modifier,
-    title: String = "Create Alarm",
-    saveButtonText: String = "Save",
+    title: String = "Buat Alarm",
+    saveButtonText: String = "Simpan",
     initialHour: Int = 7,
     initialMinute: Int = 0,
     initialDismissType: DismissType = DismissType.NORMAL,
@@ -61,6 +63,8 @@ fun CreateAlarmScreen(
     var selectedDismissType by rememberSaveable(initialDismissType) { mutableStateOf(initialDismissType) }
     var selectedEnabled by rememberSaveable(initialEnabled) { mutableStateOf(initialEnabled) }
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val nfcTagRegistered = NfcTagStore.getTagId(context) != null
 
     CreateAlarmContent(
         title = title,
@@ -70,6 +74,7 @@ fun CreateAlarmScreen(
         dismissType = selectedDismissType,
         enabled = selectedEnabled,
         showEnabledToggle = showEnabledToggle,
+        nfcTagRegistered = nfcTagRegistered,
         onHourChange = { selectedHour = it },
         onMinuteChange = { selectedMinute = it },
         onDismissTypeChange = { selectedDismissType = it },
@@ -78,15 +83,17 @@ fun CreateAlarmScreen(
         onSaveClick = {
             saveError = null
             if (selectedHour !in 0..23 || selectedMinute !in 0..59) {
-                saveError = "Please select a valid alarm time."
+                saveError = "Pilih waktu alarm yang valid."
                 Log.e(
                     CREATE_ALARM_LOG_TAG,
                     "Invalid alarm time selected: %02d:%02d".format(selectedHour, selectedMinute)
                 )
+            } else if (selectedDismissType == DismissType.NFC && !nfcTagRegistered) {
+                saveError = "Daftarkan tag NFC dulu di halaman utama."
             } else {
                 runCatching { onSaveAlarm(selectedHour, selectedMinute, selectedDismissType, selectedEnabled) }
                     .onFailure { throwable ->
-                        saveError = "Failed to save alarm. Please try again."
+                        saveError = "Gagal menyimpan alarm. Coba lagi."
                         Log.e(CREATE_ALARM_LOG_TAG, "Alarm save failed", throwable)
                     }
             }
@@ -105,6 +112,7 @@ fun CreateAlarmContent(
     dismissType: DismissType,
     enabled: Boolean,
     showEnabledToggle: Boolean,
+    nfcTagRegistered: Boolean,
     onHourChange: (Int) -> Unit,
     onMinuteChange: (Int) -> Unit,
     onDismissTypeChange: (DismissType) -> Unit,
@@ -152,7 +160,7 @@ fun CreateAlarmContent(
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Dismiss Method",
+                        text = "Metode Mematikan",
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -170,6 +178,22 @@ fun CreateAlarmContent(
                             )
                         }
                     }
+
+                    if (dismissType == DismissType.NFC) {
+                        Text(
+                            text = if (nfcTagRegistered) {
+                                "Tag NFC sudah terdaftar dan siap dipakai."
+                            } else {
+                                "Belum ada tag NFC. Daftarkan dulu di halaman utama."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (nfcTagRegistered) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
+                        )
+                    }
                 }
 
                 if (showEnabledToggle) {
@@ -178,7 +202,7 @@ fun CreateAlarmContent(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Enabled",
+                            text = "Aktif",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Switch(
@@ -207,7 +231,7 @@ fun CreateAlarmContent(
                             onClick = onBackClick,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(text = "Cancel")
+                            Text(text = "Batal")
                         }
                         Button(
                             onClick = onSaveClick,
@@ -225,7 +249,7 @@ fun CreateAlarmContent(
                             onClick = onBackClick,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "Cancel")
+                            Text(text = "Batal")
                         }
                         Button(
                             onClick = onSaveClick,
@@ -245,13 +269,14 @@ fun CreateAlarmContent(
 private fun CreateAlarmContentPreview() {
     WakeTagTheme {
         CreateAlarmContent(
-            title = "Edit Alarm",
-            saveButtonText = "Update",
+            title = "Ubah Alarm",
+            saveButtonText = "Perbarui",
             hour = 6,
             minute = 45,
-            dismissType = DismissType.QR,
+            dismissType = DismissType.NFC,
             enabled = true,
             showEnabledToggle = true,
+            nfcTagRegistered = true,
             onHourChange = {},
             onMinuteChange = {},
             onDismissTypeChange = {},

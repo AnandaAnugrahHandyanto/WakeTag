@@ -1,11 +1,15 @@
 package com.savarez.waketag
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -20,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
@@ -36,15 +41,33 @@ private enum class WakeTagScreen {
 private const val WAKE_TAG_APP_LOG_TAG = "WakeTagApp"
 
 class MainActivity : ComponentActivity() {
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestNotificationPermissionIfNeeded()
         setContent {
             WakeTagTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     WakeTagApp()
                 }
             }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+
+        if (needsPermission) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }
@@ -141,8 +164,8 @@ private fun WakeTagApp() {
         WakeTagScreen.EDIT_ALARM -> {
             val editingAlarm = alarms.firstOrNull { it.id == editingAlarmId }
             CreateAlarmScreen(
-                title = if (editingAlarm == null) "Create Alarm" else "Edit Alarm",
-                saveButtonText = if (editingAlarm == null) "Save" else "Update",
+                title = if (editingAlarm == null) "Buat Alarm" else "Ubah Alarm",
+                saveButtonText = if (editingAlarm == null) "Simpan" else "Perbarui",
                 initialHour = editingAlarm?.hour ?: createHour,
                 initialMinute = editingAlarm?.minute ?: createMinute,
                 initialDismissType = editingAlarm?.dismissType ?: com.savarez.waketag.data.model.DismissType.NORMAL,
@@ -200,7 +223,7 @@ private fun maybePromptForExactAlarmAccess(
     onPromptShown(true)
     Toast.makeText(
         context,
-        "Enable exact alarms for reliable WakeTag triggers.",
+        "Izinkan alarm tepat waktu agar WakeTag berbunyi sesuai jadwal.",
         Toast.LENGTH_LONG
     ).show()
     alarmManager.createExactAlarmSettingsIntent()?.let { settingsIntent ->

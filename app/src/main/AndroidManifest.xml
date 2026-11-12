@@ -7,6 +7,12 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.NFC" />
+
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -35,6 +41,7 @@
             android:name=".ui.screen.AlarmScreenActivity"
             android:excludeFromRecents="true"
             android:exported="false"
+            android:launchMode="singleTop"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@style/Theme.WakeTag" />

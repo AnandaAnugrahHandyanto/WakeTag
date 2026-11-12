@@ -67,13 +67,13 @@ fun AlarmTimePicker(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 NumberPickerField(
-                    label = "Hour",
+                    label = "Jam",
                     value = hour,
                     onClick = { openPicker(PickerType.HOUR) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 NumberPickerField(
-                    label = "Minute",
+                    label = "Menit",
                     value = minute,
                     onClick = { openPicker(PickerType.MINUTE) },
                     modifier = Modifier.fillMaxWidth()
@@ -86,13 +86,13 @@ fun AlarmTimePicker(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 NumberPickerField(
-                    label = "Hour",
+                    label = "Jam",
                     value = hour,
                     onClick = { openPicker(PickerType.HOUR) },
                     modifier = Modifier.weight(1f)
                 )
                 NumberPickerField(
-                    label = "Minute",
+                    label = "Menit",
                     value = minute,
                     onClick = { openPicker(PickerType.MINUTE) },
                     modifier = Modifier.weight(1f)
@@ -103,7 +103,7 @@ fun AlarmTimePicker(
 
     activePicker?.let { pickerType ->
         NumberSelectionDialog(
-            title = "Select ${pickerType.label}",
+            title = "Pilih ${pickerType.label}",
             selectedValue = if (pickerType == PickerType.HOUR) hour else minute,
             range = if (pickerType == PickerType.HOUR) 0..23 else 0..59,
             onDismiss = { closePicker() },
@@ -196,15 +196,15 @@ private fun NumberSelectionDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel")
+                Text(text = "Batal")
             }
         }
     )
 }
 
 private enum class PickerType(val label: String) {
-    HOUR("Hour"),
-    MINUTE("Minute")
+    HOUR("Jam"),
+    MINUTE("Menit")
 }
 
 @Preview(showBackground = true)

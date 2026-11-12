@@ -5,15 +5,11 @@ import com.savarez.waketag.data.model.DismissType
 val DismissType.displayLabel: String
     get() = when (this) {
         DismissType.NORMAL -> "Normal"
-        DismissType.NFC -> "NFC"
-        DismissType.QR -> "QR"
-        DismissType.PHOTO -> "Photo"
+        DismissType.NFC -> "Tag NFC"
     }
 
-val DismissType.futureCapabilityHint: String
+val DismissType.dismissHint: String
     get() = when (this) {
-        DismissType.NORMAL -> "Dismiss directly"
-        DismissType.NFC -> "NFC unlock (coming soon)"
-        DismissType.QR -> "QR unlock (coming soon)"
-        DismissType.PHOTO -> "Photo unlock (coming soon)"
+        DismissType.NORMAL -> "Matikan langsung"
+        DismissType.NFC -> "Harus ketuk tag NFC"
     }

@@ -13,7 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.savarez.waketag.R
 import com.savarez.waketag.alarm.AlarmTriggerPayload
-import com.savarez.waketag.receiver.AlarmDismissReceiver
 import com.savarez.waketag.ui.screen.AlarmScreenActivity
 import com.savarez.waketag.util.displayLabel
 
@@ -72,14 +71,10 @@ class AlarmPlaybackService : Service() {
             fullscreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val dismissPendingIntent = AlarmDismissReceiver.createDismissPendingIntent(
-            context = this,
-            alarmId = payload.alarmId
-        )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("WakeTag Alarm")
+            .setContentTitle("Alarm WakeTag")
             .setContentText("%02d:%02d • %s".format(payload.hour, payload.minute, payload.dismissType.displayLabel))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -88,7 +83,6 @@ class AlarmPlaybackService : Service() {
             .setAutoCancel(false)
             .setFullScreenIntent(fullscreenPendingIntent, true)
             .setContentIntent(fullscreenPendingIntent)
-            .addAction(0, "Dismiss", dismissPendingIntent)
             .build()
     }
 
