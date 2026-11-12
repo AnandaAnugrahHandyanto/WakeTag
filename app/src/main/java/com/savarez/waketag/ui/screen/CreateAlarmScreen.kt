@@ -213,22 +213,9 @@ fun CreateAlarmContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    ) {
-                        Text(
-                            text = "01",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
-                        )
-                    }
                 }
 
                 EditorSection(
-                    index = "01",
                     title = "Waktu bangun",
                     description = "Atur jam ketika WakeTag mulai berbunyi."
                 ) {
@@ -241,7 +228,6 @@ fun CreateAlarmContent(
                 }
 
                 EditorSection(
-                    index = "02",
                     title = "Hari aktif",
                     description = "Pilih satu atau beberapa hari untuk alarm ini."
                 ) {
@@ -249,7 +235,6 @@ fun CreateAlarmContent(
                 }
 
                 EditorSection(
-                    index = "03",
                     title = "Identitas alarm",
                     description = "Beri nama agar alarm mudah dikenali."
                 ) {
@@ -281,7 +266,6 @@ fun CreateAlarmContent(
                 }
 
                 EditorSection(
-                    index = "04",
                     title = "Cara mematikan",
                     description = "Pilih cara alarm ini dihentikan."
                 ) {
@@ -376,7 +360,6 @@ fun CreateAlarmContent(
 
 @Composable
 private fun EditorSection(
-    index: String,
     title: String,
     description: String,
     content: @Composable () -> Unit
@@ -393,16 +376,8 @@ private fun EditorSection(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = index,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 3.dp)
-                )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(title, style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -422,26 +397,21 @@ private val ACTIVE_DAY_LABELS = listOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab",
 @Composable
 private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
     val haptic = rememberHapticFeedback()
-    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { haptic(); expanded = !expanded }
-                .padding(vertical = 4.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Aktif pada", style = MaterialTheme.typography.titleMedium)
             Text(
-                text = if (expanded) "Tutup" else "Pilih hari",
+                text = activeDaysLabel(daysOfWeek),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        if (expanded) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             ACTIVE_DAY_LABELS.forEachIndexed { index, label ->
                 val bit = 1 shl index
                 val selected = daysOfWeek and bit != 0
@@ -464,9 +434,9 @@ private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
                             shape = RoundedCornerShape(12.dp)
                         )
                         .clickable {
-                        haptic()
-                        val next = if (selected) daysOfWeek and bit.inv() else daysOfWeek or bit
-                        if (next != 0) onDaysChange(next)
+                            haptic()
+                            val next = if (selected) daysOfWeek and bit.inv() else daysOfWeek or bit
+                            onDaysChange(next)
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -479,12 +449,6 @@ private fun ActiveDaysSelector(daysOfWeek: Int, onDaysChange: (Int) -> Unit) {
                     )
                 }
             }
-            }
-            Text(
-                text = activeDaysLabel(daysOfWeek),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

@@ -3,17 +3,19 @@ package com.savarez.waketag.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -21,12 +23,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /** Premium compact time display with a dual hour/minute picker dialog. */
 @Composable
@@ -190,19 +194,24 @@ private fun CompactWheel(
     modifier: Modifier = Modifier
 ) {
     val haptic = rememberHapticFeedback()
-    var dragDistance by remember { mutableFloatStateOf(0f) }
-    val dragState = rememberDraggableState { delta ->
-        dragDistance += delta
-        while (dragDistance <= -34f && value < range.last) {
-            dragDistance += 34f
-            onValueChange(value + 1)
-            haptic()
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = value)
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    LaunchedEffect(value) {
+        if (listState.firstVisibleItemIndex != value) {
+            listState.animateScrollToItem(value)
         }
-        while (dragDistance >= 34f && value > range.first) {
-            dragDistance -= 34f
-            onValueChange(value - 1)
-            haptic()
-        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (index in range && index != value) {
+                    onValueChange(index)
+                    haptic()
+                }
+            }
     }
 
     Column(
@@ -216,39 +225,47 @@ private fun CompactWheel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.5.sp
         )
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(178.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f))
-                .draggable(dragState, Orientation.Vertical)
-                .padding(6.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ((value - 2).coerceAtLeast(range.first)..(value + 2).coerceAtMost(range.last)).forEach { option ->
-                val selected = option == value
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 70.dp),
+                flingBehavior = flingBehavior,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(range.toList(), key = { it }) { option ->
+                    val selected = option == value
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                            )
+                            .clickable {
+                                haptic()
+                                onValueChange(option)
+                                // The list remains fast to browse, while taps land on the chosen value.
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "%02d".format(option),
+                            style = if (selected) MaterialTheme.typography.titleMedium
+                            else MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        .clickable { haptic(); onValueChange(option) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "%02d".format(option),
-                        style = if (selected) MaterialTheme.typography.titleMedium
-                        else MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    }
                 }
             }
         }
