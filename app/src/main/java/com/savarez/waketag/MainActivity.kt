@@ -32,17 +32,24 @@ import com.savarez.waketag.alarm.WakeTagAlarmManager
 import com.savarez.waketag.data.repository.AlarmRepositoryProvider
 import com.savarez.waketag.ui.screen.CreateAlarmScreen
 import com.savarez.waketag.ui.screen.HomeScreen
+import com.savarez.waketag.ui.screen.WakeTagLoginScreen
+import com.savarez.waketag.ui.screen.WakeTagSplashScreen
 import com.savarez.waketag.ui.theme.WakeTagTheme
 import com.savarez.waketag.util.rememberHapticFeedback
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.util.Calendar
 
 private enum class WakeTagScreen {
+    SPLASH,
+    LOGIN,
     HOME,
     EDIT_ALARM
 }
 
 private const val WAKE_TAG_APP_LOG_TAG = "WakeTagApp"
+private const val ACCESS_PREFS = "waketag_access"
+private const val ACCESS_LOGGED_IN = "logged_in"
 
 class MainActivity : ComponentActivity() {
 
@@ -93,7 +100,10 @@ private fun WakeTagApp() {
     val alarms by alarmRepository.alarms.collectAsState(initial = emptyList())
     val snooze by SnoozeStore.snooze.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.HOME.name) }
+    val accessPreferences = remember {
+        context.getSharedPreferences(ACCESS_PREFS, android.content.Context.MODE_PRIVATE)
+    }
+    var currentScreen by rememberSaveable { mutableStateOf(WakeTagScreen.SPLASH.name) }
     var editingAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exactAlarmPromptShown by rememberSaveable { mutableStateOf(false) }
     var lastBackPressAt by rememberSaveable { mutableStateOf(0L) }
@@ -104,6 +114,15 @@ private fun WakeTagApp() {
         mutableIntStateOf(Calendar.getInstance().get(Calendar.MINUTE))
     }
     val resolvedScreen = WakeTagScreen.entries.firstOrNull { it.name == currentScreen } ?: WakeTagScreen.HOME
+
+    LaunchedEffect(Unit) {
+        delay(1_100L)
+        currentScreen = if (accessPreferences.getBoolean(ACCESS_LOGGED_IN, false)) {
+            WakeTagScreen.HOME.name
+        } else {
+            WakeTagScreen.LOGIN.name
+        }
+    }
 
     BackHandler(enabled = resolvedScreen == WakeTagScreen.EDIT_ALARM) {
         haptic()
@@ -168,6 +187,15 @@ private fun WakeTagApp() {
     }
 
     when (resolvedScreen) {
+        WakeTagScreen.SPLASH -> WakeTagSplashScreen()
+
+        WakeTagScreen.LOGIN -> WakeTagLoginScreen(
+            onLogin = {
+                accessPreferences.edit().putBoolean(ACCESS_LOGGED_IN, true).apply()
+                currentScreen = WakeTagScreen.HOME.name
+            }
+        )
+
         WakeTagScreen.HOME -> {
             HomeScreen(
                 alarms = alarms,
